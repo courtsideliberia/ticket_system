@@ -1,0 +1,10 @@
+{
+  "name": "Courtside Pass Generator",
+  "description": "Courtside Liberia digital pass generator, ticket scanner, client dashboard, and pass management system.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

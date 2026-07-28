@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: courtside-pass-generator
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: main
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # PORT is injected automatically by Render — server.ts reads process.env.PORT.
+      - key: DATA_DIR
+        value: /data/courtside
+      # ── Optional: Google Sheets as the database instead of the JSON file ──
+      # Set these three in the Render dashboard (don't put real secrets in
+      # this file) to switch the app's storage from the local JSON file
+      # (backed by the disk below) to a Google Sheet. Leave them unset to
+      # keep using the JSON file — both are fully supported.
+      - key: GOOGLE_SHEET_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_EMAIL
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+        sync: false
+    # Persistent disk so data survives deploys & restarts when not using
+    # the Google Sheets backend.
+    disk:
+      name: courtside-data
+      mountPath: /data
+      sizeGB: 1

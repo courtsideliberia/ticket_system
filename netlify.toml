@@ -1,0 +1,29 @@
+# ---------------------------------------------------------------------------
+# READ BEFORE DEPLOYING TO NETLIFY
+# ---------------------------------------------------------------------------
+# By default, this app stores its state in a local JSON file. Netlify
+# Functions run in short-lived, stateless containers, so data written
+# during a function invocation can be lost between requests or on redeploy.
+#
+# Fix: configure the Google Sheets database (GOOGLE_SHEET_ID,
+# GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY — set
+# them in Netlify's Site settings → Environment variables). See
+# DEPLOYMENT.md for the full setup walkthrough.
+# ---------------------------------------------------------------------------
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

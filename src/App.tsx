@@ -1,0 +1,934 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { PassTicket, PassStatus, ScannerLog, EventRecord, OrderRecord, CustomerRecord, ScannerDevice, ActivityItem, NotificationItem, UserAccount } from './types';
+import {
+  INITIAL_TICKETS,
+  INITIAL_EVENTS,
+  INITIAL_ORDERS,
+  INITIAL_CUSTOMERS,
+  INITIAL_SCANNERS,
+  INITIAL_ACTIVITIES,
+  INITIAL_NOTIFICATIONS,
+  INITIAL_USERS,
+} from './lib/mockData';
+
+// Component Workspaces
+import { NavigationSidebar, TabType } from './components/NavigationSidebar';
+import { PageHeader } from './components/PageHeader';
+import { CommandPalette } from './components/CommandPalette';
+import { SideDetailPanel } from './components/SideDetailPanel';
+import { DashboardWorkspace } from './components/DashboardWorkspace';
+import { EventsWorkspace } from './components/EventsWorkspace';
+import { TicketsWorkspace } from './components/TicketsWorkspace';
+import { OrdersWorkspace } from './components/OrdersWorkspace';
+import { CustomersWorkspace } from './components/CustomersWorkspace';
+import { UsersWorkspace } from './components/UsersWorkspace';
+import { ScannerWorkspace } from './components/ScannerWorkspace';
+import { VenuesWorkspace } from './components/VenuesWorkspace';
+import { ReportsWorkspace } from './components/ReportsWorkspace';
+import { AnalyticsWorkspace } from './components/AnalyticsWorkspace';
+import { OrganizationWorkspace } from './components/OrganizationWorkspace';
+import { syncDataToGoogleSheets } from './components/GoogleSheetsSync';
+import { HelpWorkspace } from './components/HelpWorkspace';
+
+// Modals
+import { PassGeneratorModal } from './components/PassGeneratorModal';
+import { TicketDetailModal } from './components/TicketDetailModal';
+import { CreateEventModal } from './components/CreateEventModal';
+import { SuperAdminModal } from './components/SuperAdminModal';
+import { SharePassModal } from './components/SharePassModal';
+import { LoginScreen } from './components/LoginScreen';
+
+export const App: React.FC = () => {
+  // True until the initial GET /api/state load completes — the app's
+  // real data (tickets, events, users, etc.) now lives on the server
+  // (backed by Google Sheets, or a local JSON file as a fallback), not in
+  // localStorage, so everything starts empty and is populated once by
+  // that load.
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    try {
+      return (localStorage.getItem('courtside_active_tab_v2') as TabType) || 'dashboard';
+    } catch {
+      return 'dashboard';
+    }
+  });
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('courtside_sidebar_collapsed_v2') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Data persistence — initial values are placeholders only; the real data
+  // is loaded from GET /api/state right after mount (see the effect below).
+  const [tickets, setTickets] = useState<PassTicket[]>([]);
+  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
+  const [scanners, setScanners] = useState<ScannerDevice[]>([]);
+  const [scannerLogs, setScannerLogs] = useState<ScannerLog[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [customLogoUrl, setCustomLogoUrl] = useState<string | undefined>(undefined);
+  const [users, setUsers] = useState<UserAccount[]>([]);
+
+  // ── Load everything from the server once, on mount ──
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/state');
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.success && data.state) {
+          const s = data.state;
+          setTickets(s.tickets || []);
+          setEvents(s.events || []);
+          setOrders(s.orders || []);
+          setCustomers(s.customers || []);
+          setScanners(s.scanners?.length ? s.scanners : INITIAL_SCANNERS);
+          setScannerLogs(s.scannerLogs || []);
+          setActivities(s.activities?.length ? s.activities : INITIAL_ACTIVITIES);
+          setNotifications(s.notifications || []);
+          setCustomLogoUrl(s.customLogoUrl || undefined);
+          setUsers(s.users?.length ? s.users : INITIAL_USERS);
+        } else {
+          setLoadError(data.error || 'Failed to load data from the server.');
+          // Fall back to defaults so the app is at least usable.
+          setUsers(INITIAL_USERS);
+          setScanners(INITIAL_SCANNERS);
+          setActivities(INITIAL_ACTIVITIES);
+        }
+      } catch (err) {
+        console.error('Failed to load /api/state:', err);
+        if (!cancelled) {
+          setLoadError('Could not reach the server. Check your connection and try refreshing.');
+          setUsers(INITIAL_USERS);
+          setScanners(INITIAL_SCANNERS);
+          setActivities(INITIAL_ACTIVITIES);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ── Auto-save everything back to the server (and from there, to Google
+  // Sheets or the local JSON file) whenever it changes. Debounced so a
+  // burst of changes (e.g. generating 50 tickets) collapses into one
+  // request instead of 50. Skipped until the initial load finishes, so
+  // this doesn't immediately re-save the data it just loaded. ──
+  const saveTimerRef = React.useRef<any>(null);
+  useEffect(() => {
+    if (isLoading) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      fetch('/api/state', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tickets, events, orders, customers, scanners,
+          scannerLogs, activities, notifications, users, customLogoUrl
+        })
+      }).catch((err) => console.error('Auto-save to server failed:', err));
+    }, 600);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [tickets, events, orders, customers, scanners, scannerLogs, activities, notifications, users, customLogoUrl, isLoading]);
+
+  // Current Logged In User State
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    try {
+      const saved = localStorage.getItem('courtside_current_user_v2');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null; // Force sign in first
+  });
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('courtside_current_user_v2', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('courtside_current_user_v2');
+    }
+  }, [currentUser]);
+
+  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const [isSuperAdminModalOpen, setIsSuperAdminModalOpen] = useState(false);
+  const [sharingTicket, setSharingTicket] = useState<PassTicket | null>(null);
+
+  const handleAuthenticateUser = (passcode: string) => {
+    const code = passcode.trim();
+    const found = users.find((u) => u.passcode === code && u.status === 'active');
+    if (found) {
+      setCurrentUser(found);
+      const newNotif: NotificationItem = {
+        id: `notif-${Date.now()}`,
+        title: `👤 Signed in as ${found.name}`,
+        message: `Passcode PIN ${code} verified. Permissions active for ${found.role.replace('_', ' ')}.`,
+        category: 'system',
+        timestamp: 'Just now',
+        isRead: false,
+      };
+      setNotifications((prev) => [newNotif, ...prev]);
+      return { success: true, user: found };
+    }
+
+    if (code === '004455') {
+      const owner = users.find((u) => u.role === 'super_admin') || INITIAL_USERS[0];
+      setCurrentUser(owner);
+      return { success: true, user: owner };
+    }
+
+    return { success: false, message: 'Invalid passcode PIN. Enter 004455 for Super Admin or your assigned user PIN.' };
+  };
+
+  const handleLogoutUser = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('courtside_current_user_v2');
+  };
+
+  const handleAddUser = (newUser: UserAccount) => {
+    setUsers((prev) => [newUser, ...prev]);
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      title: `🔑 User Account Created: ${newUser.name}`,
+      message: `Passcode PIN ${newUser.passcode} assigned for role ${newUser.role.replace('_', ' ')}.`,
+      category: 'system',
+      timestamp: 'Just now',
+      isRead: false,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+  };
+
+  const handleUpdateUser = (updatedUser: UserAccount) => {
+    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    if (currentUser?.id === updatedUser.id) {
+      setCurrentUser(updatedUser);
+    }
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    if (currentUser?.id === userId) {
+      setCurrentUser(INITIAL_USERS[0]);
+    }
+  };
+
+  // Slide-over & Modal inspection states
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
+
+  const [selectedTicket, setSelectedTicket] = useState<PassTicket | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
+  const [selectedScanner, setSelectedScanner] = useState<ScannerDevice | null>(null);
+
+  // Strictly scope records to currentUser (Super Admin sees all)
+  const visibleEvents = useMemo(() => {
+    if (!currentUser) return [];
+    if (isSuperAdmin) return events;
+    return events.filter((e) => e.createdByUserId === currentUser.id);
+  }, [events, currentUser, isSuperAdmin]);
+
+  const visibleTickets = useMemo(() => {
+    if (!currentUser) return [];
+    if (isSuperAdmin) return tickets;
+    const userEventNames = new Set(visibleEvents.map((e) => e.name));
+    return tickets.filter(
+      (t) => t.createdByUserId === currentUser.id || userEventNames.has(t.eventName)
+    );
+  }, [tickets, visibleEvents, currentUser, isSuperAdmin]);
+
+  const visibleOrders = useMemo(() => {
+    if (!currentUser) return [];
+    if (isSuperAdmin) return orders;
+    const userTicketOrderIds = new Set(visibleTickets.map((t) => t.orderId).filter(Boolean));
+    const userTicketEmails = new Set(visibleTickets.map((t) => t.holderEmail).filter(Boolean));
+    return orders.filter(
+      (o) => userTicketOrderIds.has(o.id) || userTicketEmails.has(o.customerEmail)
+    );
+  }, [orders, visibleTickets, currentUser, isSuperAdmin]);
+
+  const visibleCustomers = useMemo(() => {
+    if (!currentUser) return [];
+    if (isSuperAdmin) return customers;
+    const userTicketEmails = new Set(visibleTickets.map((t) => t.holderEmail).filter(Boolean));
+    return customers.filter((c) => userTicketEmails.has(c.email));
+  }, [customers, visibleTickets, currentUser, isSuperAdmin]);
+
+  const visibleActivities = useMemo(() => {
+    if (!currentUser) return [];
+    if (isSuperAdmin) return activities;
+    return activities.filter(
+      (a) => a.user === currentUser.name || a.user === 'Owner / Super Admin'
+    );
+  }, [activities, currentUser, isSuperAdmin]);
+
+  // Sync state to localStorage
+  useEffect(() => {
+    localStorage.setItem('courtside_active_tab_v2', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    localStorage.setItem('courtside_sidebar_collapsed_v2', String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    localStorage.setItem('courtside_tickets_v2', JSON.stringify(tickets));
+  }, [tickets]);
+
+  useEffect(() => {
+    localStorage.setItem('courtside_events_v2', JSON.stringify(events));
+  }, [events]);
+
+  useEffect(() => {
+    localStorage.setItem('courtside_orders_v2', JSON.stringify(orders));
+  }, [orders]);
+
+  useEffect(() => {
+    localStorage.setItem('courtside_customers_v2', JSON.stringify(customers));
+  }, [customers]);
+
+  useEffect(() => {
+    localStorage.setItem('courtside_scanners_v2', JSON.stringify(scanners));
+  }, [scanners]);
+
+  useEffect(() => {
+    localStorage.setItem('courtside_scanner_logs_v2', JSON.stringify(scannerLogs));
+  }, [scannerLogs]);
+
+  useEffect(() => {
+    localStorage.setItem('courtside_activities_v2', JSON.stringify(activities));
+  }, [activities]);
+
+  useEffect(() => {
+    localStorage.setItem('courtside_notifications_v2', JSON.stringify(notifications));
+  }, [notifications]);
+
+  useEffect(() => {
+    if (customLogoUrl) {
+      localStorage.setItem('courtside_logo_url_v2', customLogoUrl);
+    } else {
+      localStorage.removeItem('courtside_logo_url_v2');
+    }
+  }, [customLogoUrl]);
+
+  // Global Keyboard Shortcuts (Cmd+K, N, T, R, S, Esc)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in input or textarea
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        if (e.key === 'Escape') {
+          setIsCommandPaletteOpen(false);
+        }
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      } else if (e.key.toLowerCase() === 'n' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setIsCreateEventOpen(true);
+      } else if (e.key.toLowerCase() === 't' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setIsGeneratorOpen(true);
+      } else if (e.key.toLowerCase() === 'r' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setActiveTab('reports');
+      } else if (e.key.toLowerCase() === 's' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setActiveTab('scanners');
+      } else if (e.key === 'Escape') {
+        setIsCommandPaletteOpen(false);
+        setIsGeneratorOpen(false);
+        setIsCreateEventOpen(false);
+        setSelectedTicket(null);
+        setSelectedOrder(null);
+        setSelectedCustomer(null);
+        setSelectedScanner(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Super Admin Handlers
+  const handleAuthenticateSuperAdmin = (code: string): boolean => {
+    const res = handleAuthenticateUser(code);
+    return res.success;
+  };
+
+  const handleLogoutSuperAdmin = () => {
+    handleLogoutUser();
+  };
+
+  // Handlers
+  const handleGenerateTickets = (newTickets: PassTicket[]) => {
+    const processed = newTickets.map((t) => ({
+      ...t,
+      customLogoUrl: t.customLogoUrl || customLogoUrl,
+      createdByUserId: currentUser?.id,
+      createdByUserName: currentUser?.name,
+    }));
+
+    const updatedTickets = [...processed, ...tickets];
+    setTickets(updatedTickets);
+
+    // Add activity
+    const newActivity: ActivityItem = {
+      id: `act-${Date.now()}`,
+      user: currentUser?.name || 'Operations Officer',
+      action: `generated ${newTickets.length} digital pass(es)`,
+      target: newTickets[0]?.eventName || 'LBA Championship',
+      timestamp: 'Just now',
+      type: 'ticket',
+    };
+    setActivities((prev) => [newActivity, ...prev]);
+
+    // Auto sync to Google Sheets
+    try {
+      const savedSheetUrl = localStorage.getItem('courtside_sheets_webapp_url_v2') || import.meta.env.VITE_GOOGLE_SHEETS_WEBAPP_URL;
+      if (savedSheetUrl) {
+        syncDataToGoogleSheets(savedSheetUrl, events, updatedTickets, orders, scannerLogs);
+      }
+    } catch {}
+  };
+
+  const handleCreateEvent = (newEvent: EventRecord) => {
+    const taggedEvent: EventRecord = {
+      ...newEvent,
+      createdByUserId: currentUser?.id,
+      createdByUserName: currentUser?.name,
+    };
+    const updatedEvents = [taggedEvent, ...events];
+    setEvents(updatedEvents);
+
+    const newActivity: ActivityItem = {
+      id: `act-${Date.now()}`,
+      user: currentUser?.name || 'Event Director',
+      action: 'published new event',
+      target: newEvent.name,
+      timestamp: 'Just now',
+      type: 'event',
+    };
+    setActivities((prev) => [newActivity, ...prev]);
+
+    // Auto sync to Google Sheets
+    try {
+      const savedSheetUrl = localStorage.getItem('courtside_sheets_webapp_url_v2') || import.meta.env.VITE_GOOGLE_SHEETS_WEBAPP_URL;
+      if (savedSheetUrl) {
+        syncDataToGoogleSheets(savedSheetUrl, updatedEvents, tickets, orders, scannerLogs);
+      }
+    } catch {}
+  };
+
+  const handleUpdateTicketStatus = (ticketId: string, newStatus: PassStatus) => {
+    setTickets((prev) =>
+      prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t))
+    );
+    if (selectedTicket && selectedTicket.id === ticketId) {
+      setSelectedTicket((prev) => (prev ? { ...prev, status: newStatus } : null));
+    }
+  };
+
+  const handleDeleteTicket = (ticketId: string) => {
+    if (confirm('Are you sure you want to delete this pass?')) {
+      setTickets((prev) => prev.filter((t) => t.id !== ticketId));
+      if (selectedTicket?.id === ticketId) setSelectedTicket(null);
+    }
+  };
+
+  const handleResetDatabase = () => {
+    if (confirm('Reset database to default initial state?')) {
+      setTickets(INITIAL_TICKETS);
+      setEvents(INITIAL_EVENTS);
+      setOrders(INITIAL_ORDERS);
+      setCustomers(INITIAL_CUSTOMERS);
+      setScanners(INITIAL_SCANNERS);
+      setActivities(INITIAL_ACTIVITIES);
+      setNotifications(INITIAL_NOTIFICATIONS);
+      setScannerLogs([]);
+    }
+  };
+
+  const handleMarkNotificationRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
+  };
+
+  const handleClearNotifications = () => {
+    setNotifications([]);
+  };
+
+  // Scanning ticket handler
+  const handleScanPass = (
+    ticketCode: string,
+    gateName: string
+  ): { success: boolean; ticket?: PassTicket; message: string; code: 'valid' | 'already_used' | 'invalid' | 'revoked' } => {
+    const scanTime = new Date().toLocaleTimeString();
+
+    // Owner / Super Admin Master Passcode Override
+    if (ticketCode.trim() === '004455') {
+      handleAuthenticateUser('004455');
+      const masterLog: ScannerLog = {
+        id: `log-${Date.now()}`,
+        ticketCode: '004455',
+        holderName: 'Owner / Super Admin',
+        category: 'all_access',
+        status: 'valid',
+        scannedAt: scanTime,
+        gate: gateName,
+        scannedBy: 'Master Override System',
+      };
+      setScannerLogs((prev) => [masterLog, ...prev]);
+
+      const masterTicket: PassTicket = {
+        id: 'owner-master-pass',
+        ticketCode: '004455',
+        holderName: 'Courtside Owner / Super Admin',
+        holderEmail: 'courtsideliberia@gmail.com',
+        category: 'all_access',
+        eventName: 'LBA Master Command Pass',
+        eventDate: '2026 Season',
+        venue: 'SKD Sports Complex',
+        price: 0,
+        currency: 'USD',
+        status: 'valid',
+        issuedAt: new Date().toISOString(),
+        qrCodeData: '004455|Courtside Owner|super_admin',
+        notes: 'Master Super Admin Security Key 004455',
+      };
+
+      return {
+        success: true,
+        ticket: masterTicket,
+        message: '👑 OWNER / SUPER ADMIN CODE 004455 VERIFIED • ALL ACCESS GRANTED',
+        code: 'valid',
+      };
+    }
+
+    const ticket = tickets.find(
+      (t) => t.ticketCode.toUpperCase() === ticketCode.toUpperCase()
+    );
+
+    if (!ticket) {
+      const newLog: ScannerLog = {
+        id: `log-${Date.now()}`,
+        ticketCode,
+        holderName: 'Unknown Code',
+        category: 'regular',
+        status: 'invalid',
+        scannedAt: scanTime,
+        gate: gateName,
+        scannedBy: 'Gate System',
+      };
+      setScannerLogs((prev) => [newLog, ...prev]);
+      return {
+        success: false,
+        message: 'INVALID TICKET CODE • ACCESS DENIED',
+        code: 'invalid',
+      };
+    }
+
+    if (ticket.status === 'revoked') {
+      const newLog: ScannerLog = {
+        id: `log-${Date.now()}`,
+        ticketCode,
+        holderName: ticket.holderName || ticket.eventName || "Guest",
+        category: ticket.category,
+        status: 'revoked',
+        scannedAt: scanTime,
+        gate: gateName,
+        scannedBy: 'Gate System',
+      };
+      setScannerLogs((prev) => [newLog, ...prev]);
+      return {
+        success: false,
+        ticket,
+        message: 'PASS REVOKED / CANCELLED • ACCESS DENIED',
+        code: 'revoked',
+      };
+    }
+
+    if (ticket.status === 'used') {
+      const newLog: ScannerLog = {
+        id: `log-${Date.now()}`,
+        ticketCode,
+        holderName: ticket.holderName || ticket.eventName || "Guest",
+        category: ticket.category,
+        status: 'already_used',
+        scannedAt: scanTime,
+        gate: gateName,
+        scannedBy: 'Gate System',
+      };
+      setScannerLogs((prev) => [newLog, ...prev]);
+      return {
+        success: false,
+        ticket,
+        message: `PASS ALREADY SCANNED AT ${ticket.scannedAt || 'earlier'}`,
+        code: 'already_used',
+      };
+    }
+
+    // Gate Access Validation Logic (Regular, VIP, VVIP)
+    // Note: All Access passes can enter at any gate!
+    const normalizedGate = gateName.toLowerCase();
+    const cat = (ticket.category || 'regular').toLowerCase();
+
+    let isGateAllowed = true;
+    let gateReason = '';
+
+    if (cat === 'all_access') {
+      isGateAllowed = true;
+    } else {
+      let gateTier = 1; // 1 = regular, 2 = vip, 3 = vvip
+      if (normalizedGate.includes('vvip')) {
+        gateTier = 3;
+      } else if (normalizedGate.includes('vip')) {
+        gateTier = 2;
+      } else {
+        gateTier = 1;
+      }
+
+      let passTier = 1;
+      if (cat === 'vvip' || cat === 'courtside_box' || cat === 'courtside_floor') {
+        passTier = 3;
+      } else if (cat === 'vip' || cat === 'courtside_vip' || cat === 'player_staff' || cat === 'media') {
+        passTier = 2;
+      } else {
+        passTier = 1;
+      }
+
+      if (passTier < gateTier) {
+        isGateAllowed = false;
+        const requiredGate = passTier === 1 ? 'Regular Gate' : 'VIP Gate';
+        const formattedCat = cat === 'regular' ? 'Regular' : cat.replace('_', ' ').toUpperCase();
+        gateReason = `WRONG GATE • ${formattedCat} pass is not valid for ${gateName}. (Please proceed to ${requiredGate})`;
+      }
+    }
+
+    if (!isGateAllowed) {
+      const newLog: ScannerLog = {
+        id: `log-${Date.now()}`,
+        ticketCode,
+        holderName: ticket.holderName || ticket.eventName || "Guest",
+        category: ticket.category,
+        status: 'invalid',
+        scannedAt: scanTime,
+        gate: gateName,
+        scannedBy: 'Gate System',
+      };
+      setScannerLogs((prev) => [newLog, ...prev]);
+      return {
+        success: false,
+        ticket,
+        message: gateReason || `WRONG GATE • Pass not valid for ${gateName}`,
+        code: 'invalid',
+      };
+    }
+
+    // Valid pass entry
+    const updatedTicket: PassTicket = {
+      ...ticket,
+      status: 'used',
+      scannedAt: new Date().toISOString(),
+      gateEntry: gateName,
+    };
+
+    setTickets((prev) => prev.map((t) => (t.id === ticket.id ? updatedTicket : t)));
+
+    const newLog: ScannerLog = {
+      id: `log-${Date.now()}`,
+      ticketCode,
+      holderName: ticket.holderName || ticket.eventName || "Guest",
+      category: ticket.category,
+      status: 'valid',
+      scannedAt: scanTime,
+      gate: gateName,
+      scannedBy: 'Gate Agent',
+    };
+    setScannerLogs((prev) => [newLog, ...prev]);
+
+    return {
+      success: true,
+      ticket: updatedTicket,
+      message: `ENTRY GRANTED AT ${gateName.toUpperCase()} • VALID PASS`,
+      code: 'valid',
+    };
+  };
+
+  if (!currentUser) {
+    return (
+      <LoginScreen
+        users={users}
+        onLogin={handleAuthenticateUser}
+        customLogoUrl={customLogoUrl}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans overflow-x-hidden selection:bg-blue-600 selection:text-white">
+      {/* Navigation Sidebar */}
+      <NavigationSidebar
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setMobileNavOpen(false);
+        }}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+        customLogoUrl={customLogoUrl}
+        mobileNavOpen={mobileNavOpen}
+        onCloseMobileNav={() => setMobileNavOpen(false)}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        isSuperAdmin={isSuperAdmin}
+        currentUser={currentUser}
+        onLogout={handleLogoutUser}
+        onOpenSuperAdminModal={() => setIsSuperAdminModalOpen(true)}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+        {/* Unified Page Header */}
+        <PageHeader
+          activeTab={activeTab}
+          notifications={notifications}
+          onMarkRead={handleMarkNotificationRead}
+          onClearAll={handleClearNotifications}
+          onOpenSearch={() => setIsCommandPaletteOpen(true)}
+          onOpenIssueModal={() => setIsGeneratorOpen(true)}
+          onOpenCreateEventModal={() => setIsCreateEventOpen(true)}
+          onToggleMobileNav={() => setMobileNavOpen((prev) => !prev)}
+          isSuperAdmin={isSuperAdmin}
+          onOpenSuperAdminModal={() => setIsSuperAdminModalOpen(true)}
+        />
+
+        {/* Dynamic Workspace Container */}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {activeTab === 'dashboard' && (
+            <DashboardWorkspace
+              tickets={visibleTickets}
+              events={visibleEvents}
+              orders={visibleOrders}
+              customers={visibleCustomers}
+              scanners={scanners}
+              activities={visibleActivities}
+              currentUser={currentUser}
+              onNavigate={(tab) => setActiveTab(tab)}
+              onSelectTicket={(ticket) => setSelectedTicket(ticket)}
+              onOpenIssueModal={() => setIsGeneratorOpen(true)}
+              onOpenCreateEventModal={() => setIsCreateEventOpen(true)}
+              onOpenShareModal={(ticket) => setSharingTicket(ticket)}
+            />
+          )}
+
+          {activeTab === 'events' && (
+            <EventsWorkspace
+              events={visibleEvents}
+              tickets={visibleTickets}
+              orders={visibleOrders}
+              scanners={scanners}
+              onOpenCreateEventModal={() => setIsCreateEventOpen(true)}
+              onOpenIssueModal={() => setIsGeneratorOpen(true)}
+              onSelectTicket={(ticket) => setSelectedTicket(ticket)}
+              onSelectOrder={(order) => setSelectedOrder(order)}
+            />
+          )}
+
+          {activeTab === 'tickets' && (
+            <TicketsWorkspace
+              tickets={visibleTickets}
+              events={visibleEvents}
+              onSelectTicket={(ticket) => setSelectedTicket(ticket)}
+              onUpdateTicketStatus={handleUpdateTicketStatus}
+              onDeleteTicket={handleDeleteTicket}
+              onOpenIssueModal={() => setIsGeneratorOpen(true)}
+              onOpenShareModal={(ticket) => setSharingTicket(ticket)}
+            />
+          )}
+
+          {activeTab === 'orders' && (
+            <OrdersWorkspace
+              orders={visibleOrders}
+              tickets={visibleTickets}
+              onSelectOrder={(order) => setSelectedOrder(order)}
+              onSelectTicket={(ticket) => setSelectedTicket(ticket)}
+            />
+          )}
+
+          {activeTab === 'customers' && (
+            <CustomersWorkspace
+              customers={visibleCustomers}
+              tickets={visibleTickets}
+              orders={visibleOrders}
+              onSelectCustomer={(customer) => setSelectedCustomer(customer)}
+              onSelectTicket={(ticket) => setSelectedTicket(ticket)}
+            />
+          )}
+
+          {activeTab === 'users' && (
+            <UsersWorkspace
+              users={users}
+              currentUser={currentUser}
+              events={events}
+              onAddUser={handleAddUser}
+              onUpdateUser={handleUpdateUser}
+              onDeleteUser={handleDeleteUser}
+              onSelectUserPasscode={(code: string) => {
+                handleAuthenticateUser(code);
+              }}
+            />
+          )}
+
+          {activeTab === 'scanners' && (
+            <ScannerWorkspace
+              scanners={scanners}
+              tickets={visibleTickets}
+              onScanPass={handleScanPass}
+              scannerLogs={scannerLogs}
+            />
+          )}
+
+          {activeTab === 'venues' && <VenuesWorkspace />}
+
+          {activeTab === 'reports' && <ReportsWorkspace tickets={visibleTickets} />}
+
+          {activeTab === 'analytics' && <AnalyticsWorkspace tickets={visibleTickets} />}
+
+          {(activeTab === 'organization' || activeTab === 'settings') && (
+            isSuperAdmin ? (
+              <OrganizationWorkspace
+                customLogoUrl={customLogoUrl}
+                onLogoChange={setCustomLogoUrl}
+                onResetDatabase={handleResetDatabase}
+                events={events}
+                tickets={tickets}
+                orders={orders}
+                scannerLogs={scannerLogs}
+                onImportTickets={(imported) => setTickets((prev) => [...imported, ...prev])}
+                onImportEvents={(imported) => setEvents((prev) => [...imported, ...prev])}
+              />
+            ) : (
+              <div className="p-8 text-center bg-slate-900/60 rounded-3xl border border-slate-800 space-y-4 my-8">
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center font-bold text-2xl">
+                  🔒
+                </div>
+                <h3 className="text-xl font-bold text-white font-heading uppercase tracking-wider">Super Admin Access Required</h3>
+                <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                  Workspace settings, system branding, and database controls are strictly restricted to Super Administrators. Please sign in with a Super Admin PIN to access Settings.
+                </p>
+                <button
+                  onClick={() => setIsSuperAdminModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors"
+                >
+                  Sign In as Super Admin
+                </button>
+              </div>
+            )
+          )}
+
+          {activeTab === 'help' && (
+            <HelpWorkspace
+              onOpenIssueModal={() => setIsGeneratorOpen(true)}
+              onOpenCreateEventModal={() => setIsCreateEventOpen(true)}
+              onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* Global Intelligent Command Palette Search Modal */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        tickets={tickets}
+        events={events}
+        orders={orders}
+        customers={customers}
+        scanners={scanners}
+        onOpenSuperAdminModal={() => setIsSuperAdminModalOpen(true)}
+        onSelectTicket={(ticket) => {
+          setSelectedTicket(ticket);
+          setActiveTab('tickets');
+        }}
+        onSelectOrder={(order) => {
+          setSelectedOrder(order);
+          setActiveTab('orders');
+        }}
+        onSelectCustomer={(customer) => {
+          setSelectedCustomer(customer);
+          setActiveTab('customers');
+        }}
+        onSelectScanner={(scanner) => {
+          setSelectedScanner(scanner);
+          setActiveTab('scanners');
+        }}
+        onNavigate={(tab) => setActiveTab(tab)}
+      />
+
+      {/* Slide-Over Detail Inspector Panel */}
+      <SideDetailPanel
+        selectedTicket={selectedTicket}
+        selectedOrder={selectedOrder}
+        selectedCustomer={selectedCustomer}
+        selectedScanner={selectedScanner}
+        onClose={() => {
+          setSelectedTicket(null);
+          setSelectedOrder(null);
+          setSelectedCustomer(null);
+          setSelectedScanner(null);
+        }}
+        onUpdateTicketStatus={handleUpdateTicketStatus}
+      />
+
+      {/* Quick Actions Modals */}
+      <PassGeneratorModal
+        isOpen={isGeneratorOpen}
+        onClose={() => setIsGeneratorOpen(false)}
+        onGenerate={handleGenerateTickets}
+        events={visibleEvents}
+      />
+
+      <CreateEventModal
+        isOpen={isCreateEventOpen}
+        onClose={() => setIsCreateEventOpen(false)}
+        onCreateEvent={handleCreateEvent}
+      />
+
+      <TicketDetailModal
+        ticket={selectedTicket}
+        onClose={() => setSelectedTicket(null)}
+        onUpdateStatus={handleUpdateTicketStatus}
+        onOpenShareModal={(t) => setSharingTicket(t)}
+      />
+
+      <SuperAdminModal
+        isOpen={isSuperAdminModalOpen}
+        onClose={() => setIsSuperAdminModalOpen(false)}
+        currentUser={currentUser}
+        users={users}
+        onAuthenticate={handleAuthenticateUser}
+        onLogout={handleLogoutUser}
+      />
+
+      <SharePassModal
+        ticket={sharingTicket}
+        onClose={() => setSharingTicket(null)}
+      />
+    </div>
+  );
+};
+export default App;
