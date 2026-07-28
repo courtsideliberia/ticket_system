@@ -23,7 +23,38 @@ export const INITIAL_USERS: UserAccount[] = [
 
 export const INITIAL_TICKETS: PassTicket[] = [];
 
-export const INITIAL_EVENTS: EventRecord[] = [];
+export const INITIAL_EVENTS: EventRecord[] = [
+  {
+    id: 'evt-lba-001',
+    name: 'LBA Championship 2026',
+    venue: 'SKD Sports Complex',
+    date: '2026-08-15',
+    time: '18:00',
+    capacity: 5000,
+    ticketsSold: 0,
+    totalRevenue: 0,
+    attendanceCount: 0,
+    status: 'upcoming',
+    createdByUserId: 'usr-owner-001',
+    createdByUserName: 'Courtside Owner / Super Admin',
+    bannerGradient: 'from-blue-900 via-indigo-900 to-slate-900'
+  },
+  {
+    id: 'evt-lba-002',
+    name: 'LBA All-Star Showcase',
+    venue: 'SKD Sports Complex',
+    date: '2026-08-22',
+    time: '19:30',
+    capacity: 3500,
+    ticketsSold: 0,
+    totalRevenue: 0,
+    attendanceCount: 0,
+    status: 'upcoming',
+    createdByUserId: 'usr-owner-001',
+    createdByUserName: 'Courtside Owner / Super Admin',
+    bannerGradient: 'from-amber-900 via-orange-900 to-slate-900'
+  }
+];
 
 export const INITIAL_ORDERS: OrderRecord[] = [];
 

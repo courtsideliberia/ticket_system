@@ -19,8 +19,12 @@ import {
   Crown,
   ShieldCheck,
   KeyRound,
+  Download,
+  Smartphone,
 } from 'lucide-react';
 import { AppNavView, NotificationItem } from '../types';
+import { usePwaInstall } from '../lib/usePwaInstall';
+import { PwaIosModal } from './PwaIosModal';
 
 interface PageHeaderProps {
   activeTab?: AppNavView;
@@ -71,6 +75,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const { isInstalled, triggerInstall, showIosInstructions, closeIosInstructions } = usePwaInstall();
 
   // Build Breadcrumbs list
   const getBreadcrumbs = () => {
@@ -190,6 +196,18 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
         {/* Quick Action Buttons */}
         <div className="flex items-center gap-2">
+          {/* PWA Install Button */}
+          {!isInstalled && (
+            <button
+              onClick={triggerInstall}
+              className="px-3 py-2 rounded-xl bg-blue-500/15 text-blue-300 border border-blue-500/30 hover:bg-blue-500/25 text-xs font-bold flex items-center gap-1.5 transition-all shrink-0"
+              title="Install Courtside Pass App on device for offline access & home screen shortcut"
+            >
+              <Smartphone className="w-4 h-4 text-blue-400" />
+              <span className="hidden md:inline">Install App</span>
+            </button>
+          )}
+
           {/* Owner / Super Admin Button */}
           {onOpenSuperAdminModal && (
             <button
@@ -307,6 +325,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           </div>
         </div>
       </div>
+      <PwaIosModal isOpen={showIosInstructions} onClose={closeIosInstructions} />
     </header>
   );
 };

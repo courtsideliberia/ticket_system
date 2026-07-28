@@ -8,7 +8,10 @@ import {
   ChevronRight,
   UserCheck,
   Delete,
+  Smartphone,
 } from 'lucide-react';
+import { usePwaInstall } from '../lib/usePwaInstall';
+import { PwaIosModal } from './PwaIosModal';
 
 interface LoginScreenProps {
   users: UserAccount[];
@@ -21,6 +24,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin, custom
   const [error, setError] = useState('');
   const [successUser, setSuccessUser] = useState<UserAccount | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const { isInstalled, triggerInstall, showIosInstructions, closeIosInstructions } = usePwaInstall();
 
   const handleKeyClick = (num: string) => {
     if (pin.length < 10) {
@@ -217,13 +221,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin, custom
         </form>
 
         {/* Footer */}
-        <div className="pt-6 border-t border-slate-800/60 mt-6 text-center">
+        <div className="pt-6 border-t border-slate-800/60 mt-6 text-center space-y-3">
+          {!isInstalled && (
+            <button
+              type="button"
+              onClick={triggerInstall}
+              className="w-full py-2.5 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-blue-400 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>📱 Install App to Home Screen</span>
+            </button>
+          )}
+
           <p className="text-xs text-slate-400 flex items-center justify-center gap-1.5 font-medium">
             <KeyRound className="w-3.5 h-3.5 text-blue-400" />
             <span>Courtside Pass Security Portal</span>
           </p>
         </div>
       </div>
+      <PwaIosModal isOpen={showIosInstructions} onClose={closeIosInstructions} />
     </div>
   );
 };

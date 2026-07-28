@@ -68,15 +68,34 @@ export const App: React.FC = () => {
   // Data persistence — initial values are placeholders only; the real data
   // is loaded from GET /api/state right after mount (see the effect below).
   const [tickets, setTickets] = useState<PassTicket[]>([]);
-  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [events, setEvents] = useState<EventRecord[]>(INITIAL_EVENTS);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
-  const [scanners, setScanners] = useState<ScannerDevice[]>([]);
+  const [scanners, setScanners] = useState<ScannerDevice[]>(INITIAL_SCANNERS);
   const [scannerLogs, setScannerLogs] = useState<ScannerLog[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [customLogoUrl, setCustomLogoUrl] = useState<string | undefined>(undefined);
+  const [customLogoUrl, setCustomLogoUrlState] = useState<string | undefined>(() => {
+    try {
+      return localStorage.getItem('courtside_custom_logo_url') || undefined;
+    } catch {
+      return undefined;
+    }
+  });
   const [users, setUsers] = useState<UserAccount[]>([]);
+
+  const setCustomLogoUrl = (url: string | undefined) => {
+    setCustomLogoUrlState(url);
+    try {
+      if (url) {
+        localStorage.setItem('courtside_custom_logo_url', url);
+      } else {
+        localStorage.removeItem('courtside_custom_logo_url');
+      }
+    } catch {
+      /* ignore */
+    }
+  };
 
   // ── Load everything from the server once, on mount ──
   useEffect(() => {
@@ -88,19 +107,25 @@ export const App: React.FC = () => {
         if (cancelled) return;
         if (data.success && data.state) {
           const s = data.state;
+          const savedLogo = localStorage.getItem('courtside_custom_logo_url') || undefined;
           setTickets(s.tickets || []);
-          setEvents(s.events || []);
+          setEvents(s.events?.length ? s.events : INITIAL_EVENTS);
           setOrders(s.orders || []);
           setCustomers(s.customers || []);
           setScanners(s.scanners?.length ? s.scanners : INITIAL_SCANNERS);
           setScannerLogs(s.scannerLogs || []);
           setActivities(s.activities?.length ? s.activities : INITIAL_ACTIVITIES);
           setNotifications(s.notifications || []);
-          setCustomLogoUrl(s.customLogoUrl || undefined);
+          const logoToUse = s.customLogoUrl || savedLogo;
+          setCustomLogoUrlState(logoToUse);
+          if (logoToUse) {
+            try { localStorage.setItem('courtside_custom_logo_url', logoToUse); } catch {}
+          }
           setUsers(s.users?.length ? s.users : INITIAL_USERS);
         } else {
           setLoadError(data.error || 'Failed to load data from the server.');
           // Fall back to defaults so the app is at least usable.
+          setEvents(INITIAL_EVENTS);
           setUsers(INITIAL_USERS);
           setScanners(INITIAL_SCANNERS);
           setActivities(INITIAL_ACTIVITIES);
@@ -109,6 +134,7 @@ export const App: React.FC = () => {
         console.error('Failed to load /api/state:', err);
         if (!cancelled) {
           setLoadError('Could not reach the server. Check your connection and try refreshing.');
+          setEvents(INITIAL_EVENTS);
           setUsers(INITIAL_USERS);
           setScanners(INITIAL_SCANNERS);
           setActivities(INITIAL_ACTIVITIES);

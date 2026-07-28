@@ -81,54 +81,56 @@ export const DashboardWorkspace: React.FC<DashboardWorkspaceProps> = ({
     <div className="space-y-8 animate-in fade-in duration-300 pb-12 font-sans">
       
       {/* 1. PERSONALIZED WELCOME BANNER */}
-      <section className="rounded-3xl bg-gradient-to-r from-blue-900/60 via-slate-900 to-slate-900 border border-slate-800 p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl relative overflow-hidden">
+      <section className="rounded-2xl sm:rounded-3xl bg-gradient-to-r from-blue-900/60 via-slate-900 to-slate-900 border border-slate-800 p-4 sm:p-6 lg:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 sm:gap-6 shadow-2xl relative overflow-hidden min-w-0">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
         
-        <div className="space-y-2 relative z-10 max-w-2xl">
+        <div className="space-y-2.5 relative z-10 w-full md:max-w-2xl min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <UserCheck className="w-3.5 h-3.5" />
-              {currentUser?.role ? currentUser.role.replace('_', ' ').toUpperCase() : 'ORGANIZER WORKSPACE'}
+            <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shrink-0 max-w-full">
+              <UserCheck className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">
+                {currentUser?.role ? currentUser.role.replace('_', ' ').toUpperCase() : 'ORGANIZER WORKSPACE'}
+              </span>
             </span>
             {currentUser?.role === 'super_admin' && (
-              <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-xs font-bold uppercase tracking-wider">
-                👑 Super Admin Mode (All Events View)
+              <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-xs font-bold uppercase tracking-wider shrink-0 max-w-full">
+                👑 Super Admin Mode
               </span>
             )}
           </div>
           
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-heading tracking-tight">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white font-heading tracking-tight leading-tight break-words">
             Welcome, {currentUser?.name || 'Organizer'}!
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed break-words">
             Here is your personalized summary for your events, tickets generated, sales revenue, and gate access controls.
           </p>
         </div>
 
         {/* Quick action buttons */}
-        <div className="flex flex-wrap items-center gap-3 shrink-0 relative z-10 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 shrink-0 relative z-10 w-full md:w-auto">
           <button
             type="button"
             onClick={onOpenCreateEventModal}
-            className="px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs shadow-xl shadow-blue-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-wider flex-1 md:flex-none"
+            className="px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs shadow-xl shadow-blue-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-wider whitespace-nowrap flex-1 md:flex-none"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 shrink-0" />
             <span>Create Event</span>
           </button>
           <button
             type="button"
             onClick={onOpenIssueModal}
-            className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 flex-1 md:flex-none"
+            className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none"
           >
-            <Ticket className="w-4 h-4 text-blue-400" />
+            <Ticket className="w-4 h-4 text-blue-400 shrink-0" />
             <span>Issue Pass / QR Code</span>
           </button>
           <button
             type="button"
             onClick={() => handleNav('scanners')}
-            className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 flex-1 md:flex-none"
+            className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none"
           >
-            <QrCode className="w-4 h-4 text-emerald-400" />
+            <QrCode className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>Gate Scanner</span>
           </button>
         </div>
@@ -214,34 +216,34 @@ export const DashboardWorkspace: React.FC<DashboardWorkspaceProps> = ({
       </section>
 
       {/* 3. GENERATED PASSES DIRECT EXPORT / SHARE LIST */}
-      <section className="p-6 rounded-3xl bg-slate-900 border border-slate-800/90 shadow-2xl space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <section className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-slate-900 border border-slate-800/90 shadow-2xl space-y-4 sm:space-y-5 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-slate-800 pb-4 min-w-0">
           <div>
-            <h3 className="font-heading font-extrabold text-lg text-white flex items-center gap-2">
-              <Ticket className="w-5 h-5 text-blue-400" />
+            <h3 className="font-heading font-extrabold text-base sm:text-lg text-white flex items-center gap-2">
+              <Ticket className="w-5 h-5 text-blue-400 shrink-0" />
               <span>Your Generated Passes & Tickets</span>
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 leading-normal break-words">
               Passes created by you. Type who the pass is for, and export or share instantly via WhatsApp, Email, or PNG Download.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={onOpenIssueModal}
-              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20"
+              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/20 flex-1 sm:flex-none whitespace-nowrap"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 shrink-0" />
               <span>Issue New Pass</span>
             </button>
             <button
               type="button"
               onClick={() => handleNav('tickets')}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition-all flex items-center gap-1"
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition-all flex items-center justify-center gap-1 flex-1 sm:flex-none whitespace-nowrap"
             >
               <span>View All Passes ({tickets.length})</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           </div>
         </div>

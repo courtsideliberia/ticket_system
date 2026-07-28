@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import jsQR from 'jsqr';
 import { PassTicket, ScannerLog } from '../types';
 import { PASS_TEMPLATES } from '../lib/ticketTemplateMap';
-import { QrCode, Camera, CheckCircle2, XCircle, AlertTriangle, Search, Volume2, VolumeX, ShieldCheck, RefreshCw, Sparkles, Clock, User } from 'lucide-react';
+import { QrCode, Camera, CheckCircle2, XCircle, AlertTriangle, Search, Volume2, VolumeX, ShieldCheck, RefreshCw, Sparkles, Clock, User, AlertCircle } from 'lucide-react';
 
 interface ScannerTabProps {
   tickets: PassTicket[];
@@ -26,10 +27,95 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Play audio chimes via Web Audio API
+  // Optical Camera Frame Decoding Loop via jsQR
+  useEffect(() => {
+    if (!isCameraActive) return;
+
+    let stream: MediaStream | null = null;
+    let animId: number | null = null;
+    let canvas: HTMLCanvasElement | null = document.createElement('canvas');
+    let ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let lastScannedCode = '';
+    let lastScannedTime = 0;
+
+    const startCamera = async () => {
+      setCameraError(null);
+      try {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.setAttribute('playsinline', 'true');
+          await videoRef.current.play();
+
+          const scanFrame = () => {
+            if (!videoRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
+              animId = requestAnimationFrame(scanFrame);
+              return;
+            }
+
+            if (canvas && ctx) {
+              canvas.width = videoRef.current.videoWidth || 640;
+              canvas.height = videoRef.current.videoHeight || 480;
+              ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: 'dontInvert'
+              });
+
+              if (qrCode && qrCode.data) {
+                const now = Date.now();
+                const foundCode = qrCode.data.trim();
+
+                if (foundCode && (foundCode !== lastScannedCode || now - lastScannedTime > 2000)) {
+                  lastScannedCode = foundCode;
+                  lastScannedTime = now;
+                  handleProcessCode(foundCode);
+                }
+              }
+            }
+
+            animId = requestAnimationFrame(scanFrame);
+          };
+
+          animId = requestAnimationFrame(scanFrame);
+        }
+      } catch (err: any) {
+        console.error('Camera stream error:', err);
+        setCameraError('Camera access denied or unavailable. Allow camera access in browser site permissions.');
+        setIsCameraActive(false);
+      }
+    };
+
+    startCamera();
+
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      canvas = null;
+      ctx = null;
+    };
+  }, [isCameraActive]);
+
+  const toggleCamera = () => {
+    setIsCameraActive((prev) => !prev);
+  };
   const playAudioChime = (type: 'success' | 'error') => {
     if (!soundEnabled) return;
     try {
@@ -89,28 +175,6 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleProcessCode(manualCode);
-  };
-
-  // Camera toggle handler
-  const toggleCamera = async () => {
-    if (isCameraActive) {
-      setIsCameraActive(false);
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach((track) => track.stop());
-      }
-    } else {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-        setIsCameraActive(true);
-      } catch {
-        alert('Camera access denied or unmounted in iframe mode. You can use hardware barcode scanners or manual code entry below.');
-      }
-    }
   };
 
   return (
@@ -269,13 +333,33 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               </button>
             </div>
 
+            {cameraError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{cameraError}</span>
+              </div>
+            )}
+
             <div className="relative aspect-video rounded-xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center">
               {isCameraActive ? (
-                <video ref={videoRef} className="w-full h-full object-cover" />
+                <>
+                  <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                    <div className="w-48 h-48 sm:w-56 sm:h-56 border-2 border-dashed border-blue-400/80 rounded-2xl relative shadow-2xl animate-pulse">
+                      <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-blue-400 -mt-1 -ml-1 rounded-tl-sm" />
+                      <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-blue-400 -mt-1 -mr-1 rounded-tr-sm" />
+                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-blue-400 -mb-1 -ml-1 rounded-bl-sm" />
+                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-blue-400 -mb-1 -mr-1 rounded-br-sm" />
+                    </div>
+                    <span className="mt-3 text-[11px] font-mono font-bold text-blue-300 bg-slate-950/80 px-3 py-1 rounded-full border border-blue-500/30 shadow-lg">
+                      📷 Point camera at pass QR code
+                    </span>
+                  </div>
+                </>
               ) : (
                 <div className="text-center p-6 space-y-2 text-slate-500">
                   <QrCode className="w-12 h-12 mx-auto text-slate-700" />
-                  <p className="text-xs">Camera viewfinder inactive.</p>
+                  <p className="text-xs">Camera viewfinder inactive. Tap "Start Camera Scan" above.</p>
                 </div>
               )}
             </div>

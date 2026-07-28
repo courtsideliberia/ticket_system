@@ -120,45 +120,45 @@ export const EventsWorkspace: React.FC<EventsWorkspaceProps> = ({
         <div className="space-y-6">
           {/* Hero Banner & Command Center Header */}
           <div
-            className={`p-6 lg:p-8 rounded-3xl bg-gradient-to-r ${selectedEvent.bannerGradient} border border-slate-800 shadow-2xl relative overflow-hidden text-white space-y-6`}
+            className={`p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-r ${selectedEvent.bannerGradient} border border-slate-800 shadow-2xl relative overflow-hidden text-white space-y-5 sm:space-y-6 min-w-0`}
           >
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-              <div className="space-y-2 max-w-2xl">
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-blue-300 font-mono text-[10px] font-extrabold uppercase">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 sm:gap-6 relative z-10 min-w-0">
+              <div className="space-y-2 max-w-2xl min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-blue-300 font-mono text-[10px] font-extrabold uppercase shrink-0">
                     {selectedEvent.status} Event
                   </span>
-                  <span className="text-xs text-slate-200 font-mono font-bold flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-blue-400" /> {selectedEvent.venue}
+                  <span className="text-xs text-slate-200 font-mono font-bold flex items-center gap-1 shrink-0">
+                    <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" /> {selectedEvent.venue}
                   </span>
                 </div>
-                <h1 className="text-2xl lg:text-4xl font-heading font-extrabold tracking-tight">
+                <h1 className="text-xl sm:text-2xl lg:text-4xl font-heading font-extrabold tracking-tight break-words">
                   {selectedEvent.name}
                 </h1>
-                <p className="text-sm text-slate-200 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-400" /> Date: {selectedEvent.date} at{' '}
+                <p className="text-xs sm:text-sm text-slate-200 flex items-center gap-2 flex-wrap">
+                  <Clock className="w-4 h-4 text-blue-400 shrink-0" /> Date: {selectedEvent.date} at{' '}
                   {selectedEvent.time}
                 </p>
               </div>
 
               {/* Countdown & Quick Command Actions */}
-              <div className="p-4 rounded-2xl bg-slate-950/80 backdrop-blur-xl border border-slate-800 text-center space-y-2 shrink-0">
+              <div className="p-4 rounded-2xl bg-slate-950/80 backdrop-blur-xl border border-slate-800 text-center space-y-2 w-full lg:w-auto shrink-0">
                 <p className="text-[10px] text-slate-400 uppercase font-mono tracking-wider">
                   Event Countdown
                 </p>
-                <p className="text-xl font-mono font-extrabold text-blue-400">
+                <p className="text-lg sm:text-xl font-mono font-extrabold text-blue-400">
                   22D : 14H : 38M
                 </p>
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex items-center justify-center gap-2 pt-1">
                   <button
                     onClick={onOpenIssueModal}
-                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider transition-all"
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider transition-all whitespace-nowrap flex-1 lg:flex-none"
                   >
                     Issue Pass
                   </button>
                   <button
                     onClick={() => alert('Event access link copied to clipboard!')}
-                    className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white transition-colors"
+                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white transition-colors shrink-0"
                     title="Share Event Link"
                   >
                     <Share2 className="w-4 h-4" />

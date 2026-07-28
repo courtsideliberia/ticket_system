@@ -47,7 +47,38 @@ function defaultSeedState(): AppState {
         }
       }
     ],
-    events: [],
+    events: [
+      {
+        id: 'evt-lba-001',
+        name: 'LBA Championship 2026',
+        venue: 'SKD Sports Complex',
+        date: '2026-08-15',
+        time: '18:00',
+        capacity: 5000,
+        ticketsSold: 0,
+        totalRevenue: 0,
+        attendanceCount: 0,
+        status: 'upcoming',
+        createdByUserId: 'usr-owner-001',
+        createdByUserName: 'Courtside Owner / Super Admin',
+        bannerGradient: 'from-blue-900 via-indigo-900 to-slate-900'
+      },
+      {
+        id: 'evt-lba-002',
+        name: 'LBA All-Star Showcase',
+        venue: 'SKD Sports Complex',
+        date: '2026-08-22',
+        time: '19:30',
+        capacity: 3500,
+        ticketsSold: 0,
+        totalRevenue: 0,
+        attendanceCount: 0,
+        status: 'upcoming',
+        createdByUserId: 'usr-owner-001',
+        createdByUserName: 'Courtside Owner / Super Admin',
+        bannerGradient: 'from-amber-900 via-orange-900 to-slate-900'
+      }
+    ],
     tickets: [],
     orders: [],
     customers: [],
@@ -71,17 +102,24 @@ function ensureLocalDbExists() {
 }
 
 function readState(): AppState {
+  let state: AppState;
   if (isSheetsBackendConfigured()) {
-    return readSheetsState();
+    state = readSheetsState();
+  } else {
+    ensureLocalDbExists();
+    try {
+      const data = fs.readFileSync(getDbPath(), 'utf-8');
+      state = JSON.parse(data);
+    } catch (err) {
+      console.error('Error reading local JSON DB', err);
+      state = defaultSeedState();
+    }
   }
-  ensureLocalDbExists();
-  try {
-    const data = fs.readFileSync(getDbPath(), 'utf-8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error('Error reading local JSON DB', err);
-    return defaultSeedState();
+
+  if (!state.events || state.events.length === 0) {
+    state.events = defaultSeedState().events;
   }
+  return state;
 }
 
 function writeState(data: AppState) {
