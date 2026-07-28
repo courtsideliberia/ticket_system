@@ -119,11 +119,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
 
             <button
               type="button"
-              onClick={() => {
-                if (confirm('Are you sure you want to reset the pass database to initial state?')) {
-                  onResetDatabase();
-                }
-              }}
+              onClick={onResetDatabase}
               className="w-full py-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
             >
               <RefreshCw className="w-4 h-4" /> Reset Pass Database

@@ -1,6 +1,7 @@
 import React from 'react';
 import { PassTicket } from '../types';
 import { PASS_TEMPLATES } from '../lib/ticketTemplateMap';
+import { formatRevenueSummary } from '../lib/currency';
 import { Ticket, Users, CheckCircle2, DollarSign, TrendingUp, Sparkles, QrCode, ShieldCheck, ArrowUpRight } from 'lucide-react';
 
 interface ClientDashboardProps {
@@ -103,7 +104,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-white font-heading">${totalRevenue.toLocaleString()} USD</p>
+          <p className="text-xl sm:text-2xl font-extrabold text-white font-heading font-mono">{formatRevenueSummary(tickets)}</p>
           <p className="text-[11px] text-slate-500">Courtside VIP & Box packages included</p>
         </div>
 

@@ -189,7 +189,24 @@ export async function createApp() {
       // Merge tickets intelligently by ID/code so offline or sync clients don't wipe out passes
       const ticketMap = new Map<string, PassTicket>();
       (current.tickets || []).forEach((t) => ticketMap.set(t.id || t.ticketCode, t));
-      (incoming.tickets || []).forEach((t) => ticketMap.set(t.id || t.ticketCode, t));
+      
+      (incoming.tickets || []).forEach((t) => {
+        const key = t.id || t.ticketCode;
+        const existing = ticketMap.get(key);
+        if (existing) {
+          // If existing ticket on server was already used or scanned, preserve scan status
+          const isScannedOnServer = existing.status === 'used' || (existing.status as string) === 'already_used' || !!existing.scannedAt;
+          ticketMap.set(key, {
+            ...t,
+            status: isScannedOnServer ? existing.status : t.status,
+            scannedAt: existing.scannedAt || t.scannedAt,
+            scannedBy: existing.scannedBy || t.scannedBy,
+            gateEntry: existing.gateEntry || t.gateEntry,
+          });
+        } else {
+          ticketMap.set(key, t);
+        }
+      });
 
       // Merge events
       const eventMap = new Map<string, EventRecord>();

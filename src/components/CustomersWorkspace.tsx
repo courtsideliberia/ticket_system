@@ -17,6 +17,7 @@ import {
   Award,
 } from 'lucide-react';
 import { CustomerRecord, PassTicket, OrderRecord } from '../types';
+import { formatCurrency } from '../lib/currency';
 
 interface CustomersWorkspaceProps {
   customers: CustomerRecord[];
@@ -191,7 +192,7 @@ export const CustomersWorkspace: React.FC<CustomersWorkspaceProps> = ({
                         <p className="text-[10px] font-mono text-blue-400">{t.ticketCode}</p>
                       </div>
                       <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold">
-                        ${t.price} USD
+                        {formatCurrency(t.price, t.currency)}
                       </span>
                     </div>
                   ))

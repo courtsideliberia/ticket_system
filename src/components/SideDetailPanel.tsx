@@ -17,12 +17,14 @@ import {
   Mail,
   RotateCcw,
   Ban,
+  Trash2,
   ExternalLink,
   ShieldAlert,
   ArrowLeft,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { PassTicket, OrderRecord, CustomerRecord, ScannerDevice, PassStatus } from '../types';
+import { formatCurrency } from '../lib/currency';
 
 export type DrawerItem =
   | { type: 'ticket'; data: PassTicket }
@@ -167,7 +169,7 @@ export const SideDetailPanel: React.FC<SideDetailPanelProps> = ({
                   <div>
                     <p className="text-slate-400 text-[10px] uppercase font-mono">Pass Price</p>
                     <p className="font-bold text-emerald-400 text-xs font-mono">
-                      ${item.data.price} {item.data.currency}
+                      {formatCurrency(item.data.price, item.data.currency)}
                     </p>
                   </div>
                   <div>
@@ -195,8 +197,9 @@ export const SideDetailPanel: React.FC<SideDetailPanelProps> = ({
                 <p className="font-bold text-slate-400 uppercase tracking-wider text-[10px]">
                   Administrative Actions
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
+                    type="button"
                     onClick={() =>
                       onUpdateTicketStatus &&
                       onUpdateTicketStatus(
@@ -204,20 +207,34 @@ export const SideDetailPanel: React.FC<SideDetailPanelProps> = ({
                         item.data.status === 'valid' ? 'used' : 'valid'
                       )
                     }
-                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-blue-500/40 text-slate-200 font-bold text-xs flex items-center justify-center gap-2"
+                    className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-blue-500/40 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    Toggle Status
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    Toggle
                   </button>
 
                   <button
+                    type="button"
                     onClick={() =>
                       onUpdateTicketStatus && onUpdateTicketStatus(item.data.id, 'revoked')
                     }
-                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-red-500/40 text-red-400 font-bold text-xs flex items-center justify-center gap-2"
+                    className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-red-500/40 text-red-400 font-bold text-xs flex items-center justify-center gap-1.5"
                   >
-                    <Ban className="w-4 h-4" />
-                    Revoke Pass
+                    <Ban className="w-3.5 h-3.5" />
+                    Revoke
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onDeleteTicket) {
+                        onDeleteTicket(item.data.id);
+                      }
+                    }}
+                    className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-rose-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete
                   </button>
                 </div>
               </div>
@@ -256,7 +273,7 @@ export const SideDetailPanel: React.FC<SideDetailPanelProps> = ({
                   <div>
                     <p className="text-slate-400 text-[10px]">Total Amount</p>
                     <p className="font-bold text-emerald-400 font-mono text-sm">
-                      ${item.data.totalAmount} {item.data.currency}
+                      {formatCurrency(item.data.totalAmount, item.data.currency)}
                     </p>
                   </div>
                 </div>

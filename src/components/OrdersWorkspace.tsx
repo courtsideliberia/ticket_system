@@ -17,6 +17,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { OrderRecord, PassTicket } from '../types';
+import { formatCurrency } from '../lib/currency';
 
 interface OrdersWorkspaceProps {
   orders: OrderRecord[];
@@ -122,7 +123,7 @@ export const OrdersWorkspace: React.FC<OrdersWorkspaceProps> = ({
                       {order.status}
                     </span>
                     <span className="font-bold font-mono text-lg text-emerald-400">
-                      ${order.totalAmount} {order.currency}
+                      {formatCurrency(order.totalAmount, order.currency)}
                     </span>
                   </div>
                 </div>

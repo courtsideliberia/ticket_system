@@ -4,6 +4,8 @@ import { PassTicket, TicketCanvasThemeId } from '../types';
 import { CANVAS_THEMES, PASS_TEMPLATES } from '../lib/ticketTemplateMap';
 import { Calendar, MapPin, Trophy, Sparkles, Award, Gamepad2, User, QrCode } from 'lucide-react';
 
+import { formatCurrency } from '../lib/currency';
+
 interface TicketRendererProps {
   ticket: PassTicket;
   showStub?: boolean;
@@ -351,7 +353,7 @@ export const TicketRenderer: React.FC<TicketRendererProps> = ({
           {/* Price & Serial */}
           <div className="flex items-center justify-between text-xs font-mono pt-0.5 sm:pt-1">
             <span className="text-amber-400 font-bold text-xs sm:text-sm">
-              {hasPrice ? `$${ticket.price} ${ticket.currency}` : 'ADMISSION TICKET'}
+              {hasPrice ? formatCurrency(ticket.price, ticket.currency) : 'ADMISSION TICKET'}
             </span>
             <span className="text-slate-400 font-bold text-[10px] sm:text-[11px]">
               NO : {ticket.ticketCode}

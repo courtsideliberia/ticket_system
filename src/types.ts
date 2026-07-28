@@ -152,6 +152,9 @@ export interface EventRecord {
   attendanceCount: number;
   status: 'upcoming' | 'live' | 'completed' | 'draft';
   bannerGradient: string;
+  currency?: 'USD' | 'LRD';
+  gaPrice?: number;
+  vipPrice?: number;
   createdByUserId?: string;
   createdByUserName?: string;
 }
@@ -218,5 +221,18 @@ export interface AnalyticsSummary {
   scanRate: number;
   scansByEvent: Record<string, { name: string; scanned: number; total: number }>;
   scanLogs: ScannerLog[];
+}
+
+export interface AppState {
+  users?: UserAccount[];
+  events?: EventRecord[];
+  tickets?: PassTicket[];
+  orders?: OrderRecord[];
+  customers?: CustomerRecord[];
+  scanners?: ScannerDevice[];
+  scannerLogs?: ScannerLog[];
+  activities?: ActivityItem[];
+  notifications?: NotificationItem[];
+  customLogoUrl?: string;
 }
 

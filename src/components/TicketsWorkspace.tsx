@@ -17,6 +17,7 @@ import {
   Sparkles,
   QrCode,
   Eye,
+  Trash2,
   Share2,
   Plus,
   Palette,
@@ -26,6 +27,7 @@ import {
   Layers
 } from 'lucide-react';
 import { PassTicket, PassStatus, PassCategory, EventRecord } from '../types';
+import { formatCurrency } from '../lib/currency';
 import { TicketPreviewCard } from './TicketPreviewCard';
 import { CANVAS_THEMES } from '../lib/ticketTemplateMap';
 
@@ -401,7 +403,7 @@ export const TicketsWorkspace: React.FC<TicketsWorkspaceProps> = ({
                         </td>
 
                         <td className="p-3 font-bold font-mono text-emerald-400">
-                          ${t.price} {t.currency}
+                          {formatCurrency(t.price, t.currency)}
                         </td>
 
                         <td className="p-3">
@@ -440,6 +442,16 @@ export const TicketsWorkspace: React.FC<TicketsWorkspaceProps> = ({
                               className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 font-bold text-[11px] inline-flex items-center gap-1 transition-all"
                             >
                               <Eye className="w-3.5 h-3.5" /> Inspect
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteTicket(t.id);
+                              }}
+                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all border border-rose-500/20"
+                              title="Delete Pass"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>

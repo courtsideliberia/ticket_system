@@ -37,6 +37,9 @@ export const INITIAL_EVENTS: EventRecord[] = [
     status: 'upcoming',
     createdByUserId: 'usr-owner-001',
     createdByUserName: 'Courtside Owner / Super Admin',
+    currency: 'USD',
+    gaPrice: 20,
+    vipPrice: 50,
     bannerGradient: 'from-blue-900 via-indigo-900 to-slate-900'
   },
   {
@@ -52,6 +55,9 @@ export const INITIAL_EVENTS: EventRecord[] = [
     status: 'upcoming',
     createdByUserId: 'usr-owner-001',
     createdByUserName: 'Courtside Owner / Super Admin',
+    currency: 'LRD',
+    gaPrice: 4000,
+    vipPrice: 10000,
     bannerGradient: 'from-amber-900 via-orange-900 to-slate-900'
   }
 ];

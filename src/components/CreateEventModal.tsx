@@ -21,6 +21,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [capacity, setCapacity] = useState(1000);
   const [gaPrice, setGaPrice] = useState(15);
   const [vipPrice, setVipPrice] = useState(150);
+  const [currency, setCurrency] = useState<'USD' | 'LRD'>('USD');
 
   if (!isOpen) return null;
 
@@ -40,6 +41,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       attendanceCount: 0,
       status: 'upcoming',
       bannerGradient: 'from-blue-700 via-red-600 to-slate-900',
+      currency,
+      gaPrice: Number(gaPrice),
+      vipPrice: Number(vipPrice),
     };
 
     onCreateEvent(newEvent);
@@ -174,6 +178,36 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Event Pricing Currency *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCurrency('USD')}
+                    className={`px-4 py-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-2 transition-all ${
+                      currency === 'USD'
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-md'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>USD ($) - US Dollars</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrency('LRD')}
+                    className={`px-4 py-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-2 transition-all ${
+                      currency === 'LRD'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-md'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>LRD (L$) - Liberian Dollars</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
@@ -188,7 +222,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                    GA Price ($)
+                    GA Price ({currency === 'LRD' ? 'L$' : '$'})
                   </label>
                   <input
                     type="number"
@@ -199,7 +233,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                    VIP Price ($)
+                    VIP Price ({currency === 'LRD' ? 'L$' : '$'})
                   </label>
                   <input
                     type="number"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { PassTicket, PassStatus, ScannerLog, EventRecord, OrderRecord, CustomerRecord, ScannerDevice, ActivityItem, NotificationItem, UserAccount } from './types';
+import { PassTicket, PassStatus, ScannerLog, EventRecord, OrderRecord, CustomerRecord, ScannerDevice, ActivityItem, NotificationItem, UserAccount, AppState } from './types';
 import {
   INITIAL_TICKETS,
   INITIAL_EVENTS,
@@ -33,6 +33,7 @@ import { HelpWorkspace } from './components/HelpWorkspace';
 // Modals
 import { PassGeneratorModal } from './components/PassGeneratorModal';
 import { TicketDetailModal } from './components/TicketDetailModal';
+import { ConfirmDeleteModal, DeleteTarget } from './components/ConfirmDeleteModal';
 import { CreateEventModal } from './components/CreateEventModal';
 import { SuperAdminModal } from './components/SuperAdminModal';
 import { SharePassModal } from './components/SharePassModal';
@@ -151,7 +152,15 @@ export const App: React.FC = () => {
           // Put local tickets if not in server map yet
           prevLocal.forEach((t) => {
             const key = t.id || t.ticketCode;
-            if (!map.has(key)) map.set(key, t);
+            if (!map.has(key)) {
+              map.set(key, t);
+            } else {
+              // If local ticket was scanned, keep scanned status
+              const existingServer = map.get(key)!;
+              if (t.status === 'used' || (t.status as string) === 'already_used') {
+                map.set(key, { ...existingServer, status: 'used', scannedAt: t.scannedAt || existingServer.scannedAt, scannedBy: t.scannedBy || existingServer.scannedBy });
+              }
+            }
           });
           return Array.from(map.values());
         });
@@ -183,7 +192,7 @@ export const App: React.FC = () => {
     return false;
   };
 
-  // ── Load everything from the server on mount and setup polling ──
+  // ── Load everything from server on mount, setup polling, and sync on tab focus ──
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -191,16 +200,44 @@ export const App: React.FC = () => {
       if (!cancelled) setIsLoading(false);
     })();
 
-    // Poll every 12 seconds so PWA scanners pick up passes generated on other devices
+    // Poll every 8 seconds so PWA scanners pick up passes generated on other devices
     const interval = setInterval(() => {
       fetchStateFromServer();
-    }, 12000);
+    }, 8000);
+
+    // Sync state whenever phone/computer regains focus or tab becomes active
+    const handleFocus = () => {
+      fetchStateFromServer();
+    };
+    window.addEventListener('focus', handleFocus);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchStateFromServer();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  // Helper to force immediate persistence to server (bypassing debounce)
+  const saveStateImmediately = (customPayload?: Partial<AppState>) => {
+    const payload = {
+      tickets, events, orders, customers, scanners,
+      scannerLogs, activities, notifications, users, customLogoUrl,
+      ...customPayload
+    };
+    fetch('/api/state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch((err) => console.error('Instant save failed:', err));
+  };
 
   // ── Auto-save everything back to the server whenever state changes ──
   const saveTimerRef = React.useRef<any>(null);
@@ -208,14 +245,7 @@ export const App: React.FC = () => {
     if (isLoading) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      fetch('/api/state', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tickets, events, orders, customers, scanners,
-          scannerLogs, activities, notifications, users, customLogoUrl
-        })
-      }).catch((err) => console.error('Auto-save to server failed:', err));
+      saveStateImmediately();
     }, 600);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [tickets, events, orders, customers, scanners, scannerLogs, activities, notifications, users, customLogoUrl, isLoading]);
@@ -246,6 +276,8 @@ export const App: React.FC = () => {
     const found = users.find((u) => u.passcode === code && u.status === 'active');
     if (found) {
       setCurrentUser(found);
+      // Instantly pull all tickets and events created on computer or other devices
+      fetchStateFromServer();
       const newNotif: NotificationItem = {
         id: `notif-${Date.now()}`,
         title: `👤 Signed in as ${found.name}`,
@@ -261,6 +293,8 @@ export const App: React.FC = () => {
     if (code === '004455') {
       const owner = users.find((u) => u.role === 'super_admin') || INITIAL_USERS[0];
       setCurrentUser(owner);
+      // Instantly pull all tickets and events created on computer or other devices
+      fetchStateFromServer();
       return { success: true, user: owner };
     }
 
@@ -293,11 +327,19 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteUser = (userId: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== userId));
-    if (currentUser?.id === userId) {
-      setCurrentUser(INITIAL_USERS[0]);
-    }
+    const u = users.find((x) => x.id === userId);
+    setDeleteTarget({
+      type: 'user',
+      id: userId,
+      title: u ? `${u.name} (${u.email})` : `User Account`,
+      subtitle: u ? `Role: ${u.role}` : undefined,
+      warningText: 'This user credentials and scanner access privileges will be revoked.',
+    });
   };
+
+  // Modal Delete Target State
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Slide-over & Modal inspection states
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -309,21 +351,16 @@ export const App: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
   const [selectedScanner, setSelectedScanner] = useState<ScannerDevice | null>(null);
 
-  // Strictly scope records to currentUser (Super Admin sees all)
+  // System-wide record access for authenticated accounts
   const visibleEvents = useMemo(() => {
     if (!currentUser) return [];
-    if (isSuperAdmin) return events;
-    return events.filter((e) => e.createdByUserId === currentUser.id);
-  }, [events, currentUser, isSuperAdmin]);
+    return events;
+  }, [events, currentUser]);
 
   const visibleTickets = useMemo(() => {
     if (!currentUser) return [];
-    if (isSuperAdmin) return tickets;
-    const userEventNames = new Set(visibleEvents.map((e) => e.name));
-    return tickets.filter(
-      (t) => t.createdByUserId === currentUser.id || userEventNames.has(t.eventName)
-    );
-  }, [tickets, visibleEvents, currentUser, isSuperAdmin]);
+    return tickets;
+  }, [tickets, currentUser]);
 
   const visibleOrders = useMemo(() => {
     if (!currentUser) return [];
@@ -463,6 +500,9 @@ export const App: React.FC = () => {
     const updatedTickets = [...processed, ...tickets];
     setTickets(updatedTickets);
 
+    // Save immediately to cloud database so all other devices receive new passes
+    saveStateImmediately({ tickets: updatedTickets });
+
     // Add activity
     const newActivity: ActivityItem = {
       id: `act-${Date.now()}`,
@@ -491,6 +531,9 @@ export const App: React.FC = () => {
     };
     const updatedEvents = [taggedEvent, ...events];
     setEvents(updatedEvents);
+
+    // Save immediately to cloud database so all other devices receive new event
+    saveStateImmediately({ events: updatedEvents });
 
     const newActivity: ActivityItem = {
       id: `act-${Date.now()}`,
@@ -521,14 +564,62 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteTicket = (ticketId: string) => {
-    if (confirm('Are you sure you want to delete this pass?')) {
-      setTickets((prev) => prev.filter((t) => t.id !== ticketId));
-      if (selectedTicket?.id === ticketId) setSelectedTicket(null);
-    }
+    const t = tickets.find((x) => x.id === ticketId);
+    setDeleteTarget({
+      type: 'ticket',
+      id: ticketId,
+      title: t ? `Pass #${t.ticketCode} - ${t.holderName}` : `Pass Ticket`,
+      subtitle: t ? `Event: ${t.eventName} • Category: ${t.category.toUpperCase()}` : undefined,
+      warningText: 'This pass record and QR code validation will be permanently deleted.',
+    });
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    const e = events.find((x) => x.id === eventId);
+    setDeleteTarget({
+      type: 'event',
+      id: eventId,
+      title: e ? e.name : `Event Record`,
+      subtitle: e ? `${e.date} @ ${e.venue}` : undefined,
+      warningText: 'Deleting this event will remove it from all schedules and dashboards.',
+    });
   };
 
   const handleResetDatabase = () => {
-    if (confirm('Reset database to default initial state?')) {
+    setDeleteTarget({
+      type: 'reset',
+      id: 'reset',
+      title: 'Reset System Database',
+      subtitle: 'Restores sample events, passes, users, and logs to initial default state.',
+      warningText: 'All custom created passes, events, and records will be replaced.',
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+
+    let updatedTickets = tickets;
+    let updatedEvents = events;
+    let updatedUsers = users;
+
+    if (deleteTarget.type === 'ticket') {
+      updatedTickets = tickets.filter((t) => t.id !== deleteTarget.id);
+      setTickets(updatedTickets);
+      if (selectedTicket?.id === deleteTarget.id) setSelectedTicket(null);
+    } else if (deleteTarget.type === 'event') {
+      updatedEvents = events.filter((e) => e.id !== deleteTarget.id);
+      setEvents(updatedEvents);
+    } else if (deleteTarget.type === 'user') {
+      updatedUsers = users.filter((u) => u.id !== deleteTarget.id);
+      setUsers(updatedUsers);
+      if (currentUser?.id === deleteTarget.id) {
+        setCurrentUser(INITIAL_USERS[0]);
+      }
+    } else if (deleteTarget.type === 'reset') {
+      updatedTickets = INITIAL_TICKETS;
+      updatedEvents = INITIAL_EVENTS;
+      updatedUsers = INITIAL_USERS;
       setTickets(INITIAL_TICKETS);
       setEvents(INITIAL_EVENTS);
       setOrders(INITIAL_ORDERS);
@@ -538,6 +629,15 @@ export const App: React.FC = () => {
       setNotifications(INITIAL_NOTIFICATIONS);
       setScannerLogs([]);
     }
+
+    saveStateImmediately({
+      tickets: updatedTickets,
+      events: updatedEvents,
+      users: updatedUsers,
+    });
+
+    setIsDeleting(false);
+    setDeleteTarget(null);
   };
 
   const handleMarkNotificationRead = (id: string) => {
@@ -753,7 +853,8 @@ export const App: React.FC = () => {
       gateEntry: gateName,
     };
 
-    setTickets((prev) => prev.map((t) => (t.id === ticket.id ? updatedTicket : t)));
+    const updatedTickets = tickets.map((t) => (t.id === ticket.id ? updatedTicket : t));
+    setTickets(updatedTickets);
 
     const newLog: ScannerLog = {
       id: `log-${Date.now()}`,
@@ -765,7 +866,11 @@ export const App: React.FC = () => {
       gate: gateName,
       scannedBy: 'Gate Agent',
     };
-    setScannerLogs((prev) => [newLog, ...prev]);
+    const updatedLogs = [newLog, ...scannerLogs];
+    setScannerLogs(updatedLogs);
+
+    // Save immediately to cloud database so all other devices see pass as used
+    saveStateImmediately({ tickets: updatedTickets, scannerLogs: updatedLogs });
 
     return {
       success: true,
@@ -838,6 +943,8 @@ export const App: React.FC = () => {
               onOpenIssueModal={() => setIsGeneratorOpen(true)}
               onOpenCreateEventModal={() => setIsCreateEventOpen(true)}
               onOpenShareModal={(ticket) => setSharingTicket(ticket)}
+              onDeleteTicket={handleDeleteTicket}
+              onDeleteEvent={handleDeleteEvent}
             />
           )}
 
@@ -851,6 +958,8 @@ export const App: React.FC = () => {
               onOpenIssueModal={() => setIsGeneratorOpen(true)}
               onSelectTicket={(ticket) => setSelectedTicket(ticket)}
               onSelectOrder={(order) => setSelectedOrder(order)}
+              onDeleteEvent={handleDeleteEvent}
+              onDeleteTicket={handleDeleteTicket}
             />
           )}
 
@@ -999,6 +1108,7 @@ export const App: React.FC = () => {
           setSelectedScanner(null);
         }}
         onUpdateTicketStatus={handleUpdateTicketStatus}
+        onDeleteTicket={handleDeleteTicket}
       />
 
       {/* Quick Actions Modals */}
@@ -1020,6 +1130,7 @@ export const App: React.FC = () => {
         onClose={() => setSelectedTicket(null)}
         onUpdateStatus={handleUpdateTicketStatus}
         onOpenShareModal={(t) => setSharingTicket(t)}
+        onDelete={handleDeleteTicket}
       />
 
       <SuperAdminModal
@@ -1034,6 +1145,15 @@ export const App: React.FC = () => {
       <SharePassModal
         ticket={sharingTicket}
         onClose={() => setSharingTicket(null)}
+      />
+
+      {/* Unified Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={!!deleteTarget}
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
       />
     </div>
   );

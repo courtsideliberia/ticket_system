@@ -72,6 +72,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
   const [eventTime, setEventTime] = useState('18:00 GMT');
   const [venue, setVenue] = useState('');
   const [price, setPrice] = useState<number | ''>(35);
+  const [currency, setCurrency] = useState<'USD' | 'LRD'>('USD');
   const [category, setCategory] = useState<PassCategory>('regular');
 
   React.useEffect(() => {
@@ -83,6 +84,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
         setEventDate(evt.date);
         setEventTime(evt.time || '18:00 GMT');
         setVenue(evt.venue);
+        if (evt.currency) setCurrency(evt.currency as 'USD' | 'LRD');
       } else {
         setSelectedEventId('');
         setEventName('');
@@ -128,6 +130,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
       setEventDate(found.date);
       setEventTime(found.time || '18:00 GMT');
       setVenue(found.venue);
+      if (found.currency) setCurrency(found.currency as 'USD' | 'LRD');
     }
   };
 
@@ -174,7 +177,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
     seatNumber: seatNumber.trim() || undefined,
     gateEntry: gateEntry.trim() || undefined,
     price: typeof price === 'number' ? price : 0,
-    currency: 'USD',
+    currency,
     status: 'valid',
     issuedAt: new Date().toISOString(),
     customLogoUrl: customLogoUrl || undefined,
@@ -352,7 +355,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
         seatNumber: seatNumber.trim() || undefined,
         gateEntry: gateEntry.trim() || undefined,
         price: typeof price === 'number' ? price : 0,
-        currency: 'USD',
+        currency,
         status: 'valid',
         issuedAt: new Date().toISOString(),
         customLogoUrl: customLogoUrl || undefined,
@@ -685,17 +688,48 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
                       ))}
                     </div>
 
-                    <div className="pt-1 flex items-center justify-between gap-3">
-                      <div className="flex-1">
-                        <label className="block text-[10px] text-slate-400 mb-1">Ticket Price ($ USD)</label>
-                        <input
-                          type="number"
-                          min={0}
-                          value={price}
-                          onChange={(e) => setPrice(e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
-                          placeholder="35"
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono font-bold focus:outline-none focus:border-amber-400"
-                        />
+                    <div className="pt-2">
+                      <label className="block text-[11px] font-extrabold text-amber-400 uppercase tracking-wide mb-1.5">
+                        Ticket Price & Currency *
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 font-mono">
+                            {currency === 'LRD' ? 'L$' : '$'}
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                            placeholder={currency === 'LRD' ? '7000' : '35'}
+                            className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono font-bold focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <div className="flex rounded-xl bg-slate-950 border border-slate-800 p-1 shrink-0 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setCurrency('USD')}
+                            className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
+                              currency === 'USD'
+                                ? 'bg-amber-500 text-slate-950 shadow-md'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            }`}
+                          >
+                            USD ($)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCurrency('LRD')}
+                            className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
+                              currency === 'LRD'
+                                ? 'bg-emerald-500 text-slate-950 shadow-md'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            }`}
+                          >
+                            LRD (L$)
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { PassTicket, OrderRecord, CustomerRecord, EventRecord, ScannerDevice, AppNavView } from '../types';
+import { formatCurrency } from '../lib/currency';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -270,7 +271,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     </div>
                     <div className="text-right shrink-0">
                       <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono text-[10px] font-bold">
-                        ${ticket.price} {ticket.currency}
+                        {formatCurrency(ticket.price, ticket.currency)}
                       </span>
                     </div>
                   </div>
@@ -319,7 +320,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-emerald-400 font-mono text-xs">
-                        ${order.totalAmount} USD
+                        {formatCurrency(order.totalAmount, order.currency)}
                       </p>
                       <p className="text-[10px] text-slate-400">{order.ticketCount} passes</p>
                     </div>

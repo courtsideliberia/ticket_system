@@ -1,18 +1,18 @@
 import React from 'react';
 import { BarChart3, Download, FileSpreadsheet, Calendar, DollarSign, Ticket, ShieldCheck } from 'lucide-react';
 import { PassTicket } from '../types';
+import { formatRevenueSummary } from '../lib/currency';
 
 interface ReportsWorkspaceProps {
   tickets: PassTicket[];
 }
 
 export const ReportsWorkspace: React.FC<ReportsWorkspaceProps> = ({ tickets }) => {
-  const totalRevenue = tickets.reduce((acc, t) => acc + (t.status !== 'refunded' ? t.price : 0), 0);
   const totalValid = tickets.filter((t) => t.status === 'valid' || t.status === 'used').length;
   const totalUsed = tickets.filter((t) => t.status === 'used').length;
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Ticket Code', 'Holder Name', 'Email', 'Phone', 'Category', 'Price', 'Status', 'Issued At'];
+    const headers = ['ID', 'Ticket Code', 'Holder Name', 'Email', 'Phone', 'Category', 'Price', 'Currency', 'Status', 'Issued At'];
     const rows = tickets.map((t) => [
       t.id,
       t.ticketCode,
@@ -21,6 +21,7 @@ export const ReportsWorkspace: React.FC<ReportsWorkspaceProps> = ({ tickets }) =
       t.holderPhone || '',
       t.category,
       t.price,
+      t.currency || 'USD',
       t.status,
       t.issuedAt,
     ]);
@@ -58,7 +59,7 @@ export const ReportsWorkspace: React.FC<ReportsWorkspaceProps> = ({ tickets }) =
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
           <p className="text-[10px] text-slate-400 font-mono uppercase">Total Gross Settlement</p>
-          <p className="text-2xl font-bold font-mono text-emerald-400">${totalRevenue.toLocaleString()} USD</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-400">{formatRevenueSummary(tickets)}</p>
         </div>
         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
           <p className="text-[10px] text-slate-400 font-mono uppercase">Issued Passes Count</p>

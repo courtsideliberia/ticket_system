@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Building2,
   UserCheck,
+  Trash2,
 } from 'lucide-react';
 import {
   PassTicket,
@@ -30,6 +31,7 @@ import {
   AppNavView,
   UserAccount,
 } from '../types';
+import { formatCurrency, formatPriceShort, formatRevenueSummary } from '../lib/currency';
 
 interface DashboardWorkspaceProps {
   tickets: PassTicket[];
@@ -46,6 +48,8 @@ interface DashboardWorkspaceProps {
   onOpenCreateEventModal: () => void;
   onSelectTicket: (ticket: PassTicket) => void;
   onOpenShareModal?: (ticket: PassTicket) => void;
+  onDeleteTicket?: (ticketId: string) => void;
+  onDeleteEvent?: (eventId: string) => void;
 }
 
 export const DashboardWorkspace: React.FC<DashboardWorkspaceProps> = ({
@@ -63,6 +67,8 @@ export const DashboardWorkspace: React.FC<DashboardWorkspaceProps> = ({
   onOpenCreateEventModal,
   onSelectTicket,
   onOpenShareModal,
+  onDeleteTicket,
+  onDeleteEvent,
 }) => {
   const handleNav = onNavigate || onNavigateView || (() => {});
 
@@ -155,8 +161,8 @@ export const DashboardWorkspace: React.FC<DashboardWorkspaceProps> = ({
                 <DollarSign className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-heading font-extrabold text-white font-mono">
-              ${totalRevenue.toLocaleString()} <span className="text-xs text-slate-400 font-sans">USD</span>
+            <p className="text-xl sm:text-2xl font-heading font-extrabold text-white font-mono">
+              {formatRevenueSummary(tickets)}
             </p>
             <p className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1 mt-2">
               <ArrowUpRight className="w-3.5 h-3.5" /> Generated from your events
@@ -315,19 +321,31 @@ export const DashboardWorkspace: React.FC<DashboardWorkspaceProps> = ({
 
                 <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
                   <span className="text-xs font-mono font-bold text-emerald-400">
-                    {t.price > 0 ? `$${t.price} USD` : 'FREE PASS'}
+                    {formatCurrency(t.price, t.currency)}
                   </span>
 
-                  {onOpenShareModal && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenShareModal(t)}
-                      className="px-3 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:text-blue-300 font-bold text-xs transition-all flex items-center gap-1.5"
-                    >
-                      <Share2 className="w-3.5 h-3.5" />
-                      <span>Export / Share</span>
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {onOpenShareModal && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenShareModal(t)}
+                        className="px-3 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:text-blue-300 font-bold text-xs transition-all flex items-center gap-1.5"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>Export / Share</span>
+                      </button>
+                    )}
+                    {onDeleteTicket && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteTicket(t.id)}
+                        className="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all"
+                        title="Delete Pass"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -364,20 +382,35 @@ export const DashboardWorkspace: React.FC<DashboardWorkspaceProps> = ({
                   onClick={() => handleNav('events')}
                   className="p-4 rounded-2xl bg-slate-950 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all space-y-2 group"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white text-xs group-hover:text-purple-400 transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-white text-xs group-hover:text-purple-400 transition-colors truncate">
                       {evt.name}
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 text-[10px] font-mono font-bold uppercase">
-                      {evt.status}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 text-[10px] font-mono font-bold uppercase">
+                        {evt.status}
+                      </span>
+                      {onDeleteEvent && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteEvent(evt.id);
+                          }}
+                          className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          title="Delete Event"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>
                       {evt.date} • {evt.venue}
                     </span>
                     <span className="font-mono text-emerald-400 font-bold">
-                      ${evt.totalRevenue.toLocaleString()} USD
+                      {formatRevenueSummary(tickets.filter((t) => t.eventName === evt.name))}
                     </span>
                   </div>
                 </div>

@@ -154,6 +154,13 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     }
   };
 
+  // Auto sync from server database as soon as Scanner Tab mounts or opens
+  useEffect(() => {
+    if (onSyncState) {
+      onSyncState().catch(() => {});
+    }
+  }, []);
+
   const handleManualSync = async () => {
     if (!onSyncState) return;
     setIsSyncing(true);

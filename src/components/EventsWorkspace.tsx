@@ -17,8 +17,10 @@ import {
   ExternalLink,
   ChevronRight,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { EventRecord, PassTicket, OrderRecord, ScannerDevice } from '../types';
+import { formatCurrency, formatRevenueSummary } from '../lib/currency';
 
 interface EventsWorkspaceProps {
   events: EventRecord[];
@@ -29,6 +31,8 @@ interface EventsWorkspaceProps {
   onOpenIssueModal: () => void;
   onSelectTicket: (ticket: PassTicket) => void;
   onSelectOrder?: (order: OrderRecord) => void;
+  onDeleteEvent?: (eventId: string) => void;
+  onDeleteTicket?: (ticketId: string) => void;
 }
 
 type EventTab =
@@ -50,6 +54,8 @@ export const EventsWorkspace: React.FC<EventsWorkspaceProps> = ({
   onOpenIssueModal,
   onSelectTicket,
   onSelectOrder,
+  onDeleteEvent,
+  onDeleteTicket,
 }) => {
   const [selectedEventId, setSelectedEventId] = useState<string>(events[0]?.id || '');
   const [activeSection, setActiveSection] = useState<EventTab>('Overview');
@@ -163,6 +169,15 @@ export const EventsWorkspace: React.FC<EventsWorkspaceProps> = ({
                   >
                     <Share2 className="w-4 h-4" />
                   </button>
+                  {onDeleteEvent && (
+                    <button
+                      onClick={() => onDeleteEvent(selectedEvent.id)}
+                      className="p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors shrink-0"
+                      title="Delete Event"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -178,8 +193,8 @@ export const EventsWorkspace: React.FC<EventsWorkspaceProps> = ({
               </div>
               <div className="p-3 rounded-xl bg-black/30 backdrop-blur-md border border-white/10 text-center">
                 <p className="text-[10px] text-slate-300 uppercase font-mono">Total Revenue</p>
-                <p className="text-lg font-bold font-mono text-emerald-300 mt-0.5">
-                  ${selectedEvent.totalRevenue.toLocaleString()} USD
+                <p className="text-base sm:text-lg font-bold font-mono text-emerald-300 mt-0.5">
+                  {formatRevenueSummary(eventTickets)}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-black/30 backdrop-blur-md border border-white/10 text-center">
@@ -254,7 +269,7 @@ export const EventsWorkspace: React.FC<EventsWorkspaceProps> = ({
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-emerald-400 font-mono text-xs">${t.price} USD</p>
+                        <p className="font-bold text-emerald-400 font-mono text-xs">{formatCurrency(t.price, t.currency)}</p>
                         <p className="text-[10px] text-slate-400">{t.status}</p>
                       </div>
                     </div>
@@ -304,11 +319,26 @@ export const EventsWorkspace: React.FC<EventsWorkspaceProps> = ({
                     onClick={() => onSelectTicket(t)}
                     className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-blue-500/50 cursor-pointer space-y-2"
                   >
-                    <p className="font-bold text-white text-xs">{t.holderName}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-bold text-white text-xs truncate">{t.holderName}</p>
+                      {onDeleteTicket && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteTicket(t.id);
+                          }}
+                          className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0"
+                          title="Delete Pass"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                     <p className="text-[10px] font-mono text-blue-400">{t.ticketCode}</p>
                     <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
                       <span>{t.category.toUpperCase()}</span>
-                      <span className="font-bold text-emerald-400">${t.price}</span>
+                      <span className="font-bold text-emerald-400">{formatCurrency(t.price, t.currency)}</span>
                     </div>
                   </div>
                 ))}
@@ -330,7 +360,7 @@ export const EventsWorkspace: React.FC<EventsWorkspaceProps> = ({
                       <p className="font-bold text-white text-xs">{o.orderNumber} • {o.customerName}</p>
                       <p className="text-[10px] text-slate-400">{o.paymentMethod} • {o.ticketCount} Tickets</p>
                     </div>
-                    <span className="font-mono text-emerald-400 font-bold text-xs">${o.totalAmount} USD</span>
+                    <span className="font-mono text-emerald-400 font-bold text-xs">{formatCurrency(o.totalAmount, o.currency)}</span>
                   </div>
                 ))}
               </div>

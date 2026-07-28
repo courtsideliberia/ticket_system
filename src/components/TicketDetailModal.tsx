@@ -1,13 +1,14 @@
 import React from 'react';
 import { PassTicket } from '../types';
 import { TicketRenderer } from './TicketRenderer';
-import { X, Printer, Download, Mail, CheckCircle2, XCircle, RotateCcw, Share2, ArrowLeft } from 'lucide-react';
+import { X, Printer, Download, Mail, CheckCircle2, XCircle, RotateCcw, Share2, ArrowLeft, Trash2 } from 'lucide-react';
 
 interface TicketDetailModalProps {
   ticket: PassTicket | null;
   onClose: () => void;
   onUpdateStatus: (ticketId: string, newStatus: PassTicket['status']) => void;
   onOpenShareModal?: (ticket: PassTicket) => void;
+  onDelete?: (ticketId: string) => void;
 }
 
 export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
@@ -15,6 +16,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   onClose,
   onUpdateStatus,
   onOpenShareModal,
+  onDelete,
 }) => {
   if (!ticket) return null;
 
@@ -136,6 +138,19 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
             <ArrowLeft className="w-4 h-4 text-blue-400" />
             <span>Go Back to Passes</span>
           </button>
+
+          {onDelete && (
+            <button
+              onClick={() => {
+                onDelete(ticket.id);
+                onClose();
+              }}
+              className="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-extrabold text-xs flex items-center justify-center gap-1.5 border border-rose-500/30 transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete Pass</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

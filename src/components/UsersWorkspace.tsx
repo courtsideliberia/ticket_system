@@ -362,11 +362,8 @@ export const UsersWorkspace: React.FC<UsersWorkspaceProps> = ({
                     </button>
 
                     <button
-                      onClick={() => {
-                        if (confirm(`Are you sure you want to delete user account "${user.name}"?`)) {
-                          onDeleteUser(user.id);
-                        }
-                      }}
+                      type="button"
+                      onClick={() => onDeleteUser(user.id)}
                       className="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                       title="Delete User Account"
                     >

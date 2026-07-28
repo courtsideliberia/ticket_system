@@ -48,6 +48,7 @@ export async function syncDataToGoogleSheets(
       eventName: p.eventName,
       category: p.category,
       price: p.price || 0,
+      currency: p.currency || 'USD',
       status: p.status || 'valid',
       issuedAt: p.issuedAt,
     })),
@@ -200,7 +201,7 @@ export const GoogleSheetsSync: React.FC<GoogleSheetsSyncProps> = ({
   };
 
   const handleExportPassesCSV = () => {
-    const headers = ['Ticket Code', 'Holder Name', 'Email', 'Event Name', 'Category', 'Price ($)', 'Status', 'Issued At'];
+    const headers = ['Ticket Code', 'Holder Name', 'Email', 'Event Name', 'Category', 'Price', 'Currency', 'Status', 'Issued At'];
     const rows = tickets.map((t) => [
       `"${t.ticketCode}"`,
       `"${(t.holderName || '').replace(/"/g, '""')}"`,
@@ -208,6 +209,7 @@ export const GoogleSheetsSync: React.FC<GoogleSheetsSyncProps> = ({
       `"${(t.eventName || '').replace(/"/g, '""')}"`,
       `"${t.category}"`,
       t.price || 0,
+      `"${t.currency || 'USD'}"`,
       `"${t.status || 'valid'}"`,
       `"${t.issuedAt}"`,
     ].join(','));
