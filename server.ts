@@ -11,6 +11,7 @@ import {
   isSheetsDbActive,
   AppState
 } from './sheetsDb';
+import { PassTicket, EventRecord, ScannerLog } from './src/types';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Local JSON-file fallback (used automatically whenever the Google Sheets
@@ -184,20 +185,36 @@ export async function createApp() {
     try {
       const incoming = req.body as Partial<AppState>;
       const current = readState();
+
+      // Merge tickets intelligently by ID/code so offline or sync clients don't wipe out passes
+      const ticketMap = new Map<string, PassTicket>();
+      (current.tickets || []).forEach((t) => ticketMap.set(t.id || t.ticketCode, t));
+      (incoming.tickets || []).forEach((t) => ticketMap.set(t.id || t.ticketCode, t));
+
+      // Merge events
+      const eventMap = new Map<string, EventRecord>();
+      (current.events || []).forEach((e) => eventMap.set(e.id, e));
+      (incoming.events || []).forEach((e) => eventMap.set(e.id, e));
+
+      // Merge scannerLogs
+      const logMap = new Map<string, ScannerLog>();
+      (current.scannerLogs || []).forEach((l) => logMap.set(l.id, l));
+      (incoming.scannerLogs || []).forEach((l) => logMap.set(l.id, l));
+
       const merged: AppState = {
-        users: incoming.users ?? current.users ?? [],
-        events: incoming.events ?? current.events ?? [],
-        tickets: incoming.tickets ?? current.tickets ?? [],
+        users: incoming.users?.length ? incoming.users : current.users ?? [],
+        events: Array.from(eventMap.values()),
+        tickets: Array.from(ticketMap.values()),
         orders: incoming.orders ?? current.orders ?? [],
         customers: incoming.customers ?? current.customers ?? [],
         scanners: incoming.scanners ?? current.scanners ?? [],
-        scannerLogs: incoming.scannerLogs ?? current.scannerLogs ?? [],
+        scannerLogs: Array.from(logMap.values()),
         activities: incoming.activities ?? current.activities ?? [],
         notifications: incoming.notifications ?? current.notifications ?? [],
         customLogoUrl: incoming.customLogoUrl !== undefined ? incoming.customLogoUrl : current.customLogoUrl
       };
       writeState(merged);
-      res.json({ success: true });
+      res.json({ success: true, count: merged.tickets.length });
     } catch (err) {
       console.error('PUT /api/state error:', err);
       res.status(500).json({ success: false, error: 'Failed to save database.' });

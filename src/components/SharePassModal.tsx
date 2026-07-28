@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { PassTicket } from '../types';
-import { X, Download, MessageSquare, Mail, Share2, Copy, Check, Sparkles, Send, Phone, ShieldCheck, Ticket } from 'lucide-react';
+import { X, Download, MessageSquare, Mail, Share2, Copy, Check, Sparkles, Send, Phone, ShieldCheck, Ticket, ArrowLeft } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { PASS_TEMPLATES } from '../lib/ticketTemplateMap';
 import { QRCodeSVG } from 'qrcode.react';
@@ -101,79 +101,90 @@ Verified by Courtside Liberia Platform`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-xl rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-xl rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[90vh]">
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              <Share2 className="w-5 h-5" />
+        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              onClick={onClose}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-all shrink-0"
+              title="Go Back"
+            >
+              <ArrowLeft className="w-4 h-4 text-blue-400" />
+              <span>Go Back</span>
+            </button>
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0 hidden sm:block">
+              <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-white font-heading uppercase tracking-wider">
+            <div className="min-w-0">
+              <h2 className="text-xs sm:text-base font-bold text-white font-heading uppercase tracking-wider truncate">
                 Export & Dispatch Pass
               </h2>
-              <p className="text-xs text-slate-400">
-                {ticket.ticketCode} • {ticket.holderName}
+              <p className="text-[10px] sm:text-xs text-slate-400 truncate">
+                {ticket.ticketCode} • {ticket.holderName || 'Guest'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Selection */}
-        <div className="flex border-b border-slate-800 bg-slate-950/60 p-1.5 gap-1 shrink-0">
+        <div className="flex border-b border-slate-800 bg-slate-950/60 p-1 sm:p-1.5 gap-1 shrink-0">
           <button
             onClick={() => setActiveTab('whatsapp')}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
               activeTab === 'whatsapp'
                 ? 'bg-emerald-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            <MessageSquare className="w-4 h-4 text-emerald-300" /> WhatsApp Direct
+            <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
+            <span className="truncate">WhatsApp</span>
           </button>
           <button
             onClick={() => setActiveTab('image')}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
               activeTab === 'image'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            <Download className="w-4 h-4 text-blue-300" /> Image (PNG)
+            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-300 shrink-0" />
+            <span className="truncate">Image (PNG)</span>
           </button>
           <button
             onClick={() => setActiveTab('email')}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
               activeTab === 'email'
                 ? 'bg-purple-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            <Mail className="w-4 h-4 text-purple-300" /> Email Pass
+            <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-300 shrink-0" />
+            <span className="truncate">Email Pass</span>
           </button>
         </div>
 
         {/* Tab Body */}
-        <div className="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1">
+        <div className="p-3.5 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6 custom-scrollbar flex-1">
           {/* WHATSAPP TAB */}
           {activeTab === 'whatsapp' && (
             <div className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-slate-300 space-y-1">
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-slate-300 space-y-1">
                 <div className="font-bold text-emerald-400 flex items-center gap-1.5">
-                  <MessageSquare className="w-4 h-4" /> Instant WhatsApp Pass Dispatch
+                  <MessageSquare className="w-4 h-4 shrink-0" /> Instant WhatsApp Pass Dispatch
                 </div>
-                <p>Send ticket details, holder credentials, and QR check-in codes directly to WhatsApp.</p>
+                <p className="text-[11px] text-slate-400">Send ticket details, holder credentials, and check-in code directly to WhatsApp.</p>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                <label className="text-[11px] sm:text-xs font-bold text-slate-300 uppercase tracking-wider block">
                   Recipient Phone Number
                 </label>
                 <div className="relative">
@@ -190,7 +201,7 @@ Verified by Courtside Liberia Platform`;
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-300 uppercase tracking-wider block">
                     Message Preview
                   </label>
                   <button
@@ -198,22 +209,22 @@ Verified by Courtside Liberia Platform`;
                     className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
                   >
                     {copiedText ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copiedText ? 'Copied to Clipboard' : 'Copy Message'}
+                    {copiedText ? 'Copied' : 'Copy Message'}
                   </button>
                 </div>
                 <textarea
                   readOnly
-                  rows={9}
+                  rows={6}
                   value={whatsappMessage}
-                  className="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 font-mono text-[11px] focus:outline-none resize-none"
+                  className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 font-mono text-[10px] sm:text-[11px] focus:outline-none resize-none"
                 />
               </div>
 
-              <div className="pt-2 flex items-center gap-3">
+              <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={handleCopyWhatsAppText}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-2 transition-all"
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all"
                 >
                   <Copy className="w-4 h-4" /> Copy Text
                 </button>
@@ -231,14 +242,14 @@ Verified by Courtside Liberia Platform`;
           {/* IMAGE PNG TAB */}
           {activeTab === 'image' && (
             <div className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-slate-300">
+              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-slate-300">
                 <p className="font-bold text-blue-400">High-Resolution PNG Pass Exporter</p>
-                <p className="text-[11px] text-slate-400 pt-0.5">Render the exact pass layout with custom logo & QR code into a downloadable PNG file.</p>
+                <p className="text-[11px] text-slate-400 pt-0.5">Render the pass layout with custom logo & QR code into a downloadable PNG file.</p>
               </div>
 
               {/* Render Target Card */}
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex justify-center overflow-x-auto">
-                <div ref={cardRef} className="p-2 bg-slate-950 rounded-2xl">
+              <div className="p-2 sm:p-4 bg-slate-950 rounded-2xl border border-slate-800 flex justify-center overflow-x-auto w-full">
+                <div ref={cardRef} className="p-1 sm:p-2 bg-slate-950 rounded-2xl w-full max-w-full flex justify-center">
                   <TicketRenderer ticket={ticket} />
                 </div>
               </div>
@@ -258,13 +269,13 @@ Verified by Courtside Liberia Platform`;
           {/* EMAIL TAB */}
           {activeTab === 'email' && (
             <form onSubmit={handleSendEmailSimulated} className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-slate-300">
+              <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-slate-300">
                 <p className="font-bold text-purple-400">Email Pass Dispatch Service</p>
                 <p className="text-[11px] text-slate-400 pt-0.5">Send official pass confirmation & check-in credentials via email.</p>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                <label className="text-[11px] sm:text-xs font-bold text-slate-300 uppercase tracking-wider block">
                   Holder Email Address
                 </label>
                 <input
@@ -277,26 +288,26 @@ Verified by Courtside Liberia Platform`;
                 />
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
-                <div className="flex justify-between text-slate-400">
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+                <div className="flex items-center justify-between text-slate-400 gap-2">
                   <span>Subject:</span>
-                  <span className="font-mono text-white">🎟️ Your Courtside Pass: {ticket.eventName}</span>
+                  <span className="font-mono text-white truncate text-[11px]">🎟️ {ticket.eventName}</span>
                 </div>
-                <div className="flex justify-between text-slate-400">
+                <div className="flex items-center justify-between text-slate-400 gap-2">
                   <span>Ticket Code:</span>
-                  <span className="font-mono text-blue-400 font-bold">{ticket.ticketCode}</span>
+                  <span className="font-mono text-blue-400 font-bold text-[11px]">{ticket.ticketCode}</span>
                 </div>
-                <div className="flex justify-between text-slate-400">
+                <div className="flex items-center justify-between text-slate-400 gap-2">
                   <span>Holder:</span>
-                  <span className="text-white font-bold">{ticket.holderName}</span>
+                  <span className="text-white font-bold text-[11px] truncate">{ticket.holderName}</span>
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center gap-3">
+              <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={handleOpenMailClient}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-2 transition-all"
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all"
                 >
                   <Mail className="w-4 h-4" /> Open Email Client
                 </button>

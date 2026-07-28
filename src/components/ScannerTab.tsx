@@ -8,15 +8,19 @@ interface ScannerTabProps {
   tickets: PassTicket[];
   onScanPass: (ticketCode: string, gateName: string) => { success: boolean; ticket?: PassTicket; message: string; code: 'valid' | 'already_used' | 'invalid' | 'revoked' };
   scannerLogs: ScannerLog[];
+  onSyncState?: () => Promise<boolean | void>;
 }
 
 export const ScannerTab: React.FC<ScannerTabProps> = ({
   tickets,
   onScanPass,
   scannerLogs,
+  onSyncState,
 }) => {
   const [manualCode, setManualCode] = useState('');
   const [gateName, setGateName] = useState('Regular Gate');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [lastScanResult, setLastScanResult] = useState<{
     success: boolean;
     ticket?: PassTicket;
@@ -150,13 +154,26 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
     }
   };
 
+  const handleManualSync = async () => {
+    if (!onSyncState) return;
+    setIsSyncing(true);
+    setSyncMessage(null);
+    try {
+      await onSyncState();
+      setSyncMessage(`Database synced • ${tickets.length} passes active`);
+    } catch {
+      setSyncMessage('Sync failed. Please check network.');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncMessage(null), 4000);
+    }
+  };
+
   const handleProcessCode = (codeToScan: string) => {
     if (!codeToScan.trim()) return;
 
-    // Handle string format in case QR contains extra payload (e.g., CRT-123|Name|Type)
-    const cleanCode = codeToScan.split('|')[0].trim().toUpperCase();
-
-    const res = onScanPass(cleanCode, gateName);
+    // Pass codeToScan directly so handleScanPass matches against candidates/tokens
+    const res = onScanPass(codeToScan, gateName);
 
     setLastScanResult({
       ...res,
@@ -187,25 +204,71 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
               <QrCode className="w-5 h-5" />
             </span>
             <h2 className="text-xl font-bold text-white font-heading">Courtside Gate Scanner</h2>
+            <span className="ml-2 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              {tickets.length} Passes Ready
+            </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
             Real-time gate verification with duplicate scan detection & instant access logs.
           </p>
+          {syncMessage && (
+            <p className="text-xs font-semibold text-emerald-400 mt-1 animate-in fade-in duration-200">
+              {syncMessage}
+            </p>
+          )}
         </div>
 
-        <button
-          onClick={() => setSoundEnabled(!soundEnabled)}
-          className={`px-3 py-2 rounded-xl border text-xs font-bold transition-colors flex items-center gap-2 ${
-            soundEnabled
-              ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-              : 'bg-slate-950 text-slate-500 border-slate-800'
-          }`}
-          title={soundEnabled ? 'Mute Chime Sound' : 'Enable Chime Sound'}
-        >
-          {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          <span>{soundEnabled ? 'Sound On' : 'Sound Muted'}</span>
-        </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {onSyncState && (
+            <button
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 hover:text-white transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
+              title="Sync latest database passes from server"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? 'Syncing...' : 'Sync Database'}</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`px-3 py-2 rounded-xl border text-xs font-bold transition-colors flex items-center gap-2 ${
+              soundEnabled
+                ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+                : 'bg-slate-950 text-slate-500 border-slate-800'
+            }`}
+            title={soundEnabled ? 'Mute Chime Sound' : 'Enable Chime Sound'}
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            <span>{soundEnabled ? 'Sound On' : 'Sound Muted'}</span>
+          </button>
+        </div>
       </div>
+
+      {tickets.length === 0 && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <p className="font-bold text-amber-300">Scanner Database Empty (0 Passes Loaded)</p>
+              <p className="text-[11px] text-amber-200/80 mt-0.5">
+                If passes were generated on another computer, tap <strong>Sync Database</strong> above to pull them to your iPhone.
+              </p>
+            </div>
+          </div>
+          {onSyncState && (
+            <button
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold text-xs border border-amber-500/40 shrink-0 transition-colors"
+            >
+              Sync Now
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Gate Station Selection Bar */}
       <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">

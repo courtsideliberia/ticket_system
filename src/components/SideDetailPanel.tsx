@@ -19,6 +19,7 @@ import {
   Ban,
   ExternalLink,
   ShieldAlert,
+  ArrowLeft,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { PassTicket, OrderRecord, CustomerRecord, ScannerDevice, PassStatus } from '../types';
@@ -71,14 +72,23 @@ export const SideDetailPanel: React.FC<SideDetailPanelProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drawer Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
-          <div className="flex items-center gap-2">
-            {item.type === 'ticket' && <TicketIcon className="w-5 h-5 text-blue-400" />}
-            {item.type === 'order' && <ShoppingBag className="w-5 h-5 text-blue-400" />}
-            {item.type === 'customer' && <User className="w-5 h-5 text-purple-400" />}
-            {item.type === 'scanner' && <QrCode className="w-5 h-5 text-emerald-400" />}
+        <div className="p-3.5 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={onClose}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-all shrink-0 mr-1"
+              title="Go Back"
+            >
+              <ArrowLeft className="w-4 h-4 text-blue-400" />
+              <span>Go Back</span>
+            </button>
 
-            <h2 className="font-heading font-extrabold text-base text-white uppercase tracking-wider">
+            {item.type === 'ticket' && <TicketIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 shrink-0" />}
+            {item.type === 'order' && <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 shrink-0" />}
+            {item.type === 'customer' && <User className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 shrink-0" />}
+            {item.type === 'scanner' && <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" />}
+
+            <h2 className="font-heading font-extrabold text-xs sm:text-base text-white uppercase tracking-wider truncate">
               {item.type === 'ticket' && 'Pass Inspector Drawer'}
               {item.type === 'order' && 'Order Summary Drawer'}
               {item.type === 'customer' && 'Customer Profile Drawer'}
@@ -88,30 +98,30 @@ export const SideDetailPanel: React.FC<SideDetailPanelProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Drawer Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar text-xs">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-4 sm:space-y-6 custom-scrollbar text-xs">
           {/* TICKET DETAILS */}
           {item.type === 'ticket' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* QR & Code Box */}
-              <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center text-center space-y-4 shadow-inner">
-                <div className="p-3 bg-white rounded-2xl shadow-xl">
-                  <QRCodeSVG value={item.data.qrCodeData} size={150} level="H" />
+              <div className="p-4 sm:p-6 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center text-center space-y-3 sm:space-y-4 shadow-inner">
+                <div className="p-2.5 sm:p-3 bg-white rounded-2xl shadow-xl">
+                  <QRCodeSVG value={item.data.qrCodeData} size={130} level="H" className="sm:w-[150px] sm:h-[150px]" />
                 </div>
-                <div>
-                  <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 font-mono text-xs font-bold">
+                <div className="w-full">
+                  <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 font-mono text-xs font-bold inline-block">
                     {item.data.ticketCode}
                   </span>
-                  <h3 className="text-lg font-heading font-extrabold text-white mt-2">
-                    {item.data.holderName}
+                  <h3 className="text-base sm:text-lg font-heading font-extrabold text-white mt-2 truncate">
+                    {item.data.holderName || 'Guest'}
                   </h3>
-                  <p className="text-slate-400 text-xs">{item.data.holderEmail}</p>
+                  <p className="text-slate-400 text-xs truncate">{item.data.holderEmail}</p>
                 </div>
               </div>
 
@@ -348,9 +358,10 @@ export const SideDetailPanel: React.FC<SideDetailPanelProps> = ({
         <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between gap-3">
           <button
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-colors"
+            className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-colors"
           >
-            Close Panel
+            <ArrowLeft className="w-4 h-4 text-blue-400" />
+            <span>Go Back / Close Panel</span>
           </button>
         </div>
       </div>

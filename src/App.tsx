@@ -65,14 +65,38 @@ export const App: React.FC = () => {
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Data persistence — initial values are placeholders only; the real data
-  // is loaded from GET /api/state right after mount (see the effect below).
-  const [tickets, setTickets] = useState<PassTicket[]>([]);
-  const [events, setEvents] = useState<EventRecord[]>(INITIAL_EVENTS);
+  // Data persistence with localStorage local fallback cache for instant offline PWA support
+  const [tickets, setTickets] = useState<PassTicket[]>(() => {
+    try {
+      const saved = localStorage.getItem('courtside_tickets_v2');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  const [events, setEvents] = useState<EventRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('courtside_events_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_EVENTS;
+  });
+
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [scanners, setScanners] = useState<ScannerDevice[]>(INITIAL_SCANNERS);
-  const [scannerLogs, setScannerLogs] = useState<ScannerLog[]>([]);
+
+  const [scannerLogs, setScannerLogs] = useState<ScannerLog[]>(() => {
+    try {
+      const saved = localStorage.getItem('courtside_scanner_logs_v2');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [customLogoUrl, setCustomLogoUrlState] = useState<string | undefined>(() => {
@@ -83,6 +107,19 @@ export const App: React.FC = () => {
     }
   });
   const [users, setUsers] = useState<UserAccount[]>([]);
+
+  // Local storage synchronization effects
+  useEffect(() => {
+    try { localStorage.setItem('courtside_tickets_v2', JSON.stringify(tickets)); } catch {}
+  }, [tickets]);
+
+  useEffect(() => {
+    try { localStorage.setItem('courtside_events_v2', JSON.stringify(events)); } catch {}
+  }, [events]);
+
+  useEffect(() => {
+    try { localStorage.setItem('courtside_scanner_logs_v2', JSON.stringify(scannerLogs)); } catch {}
+  }, [scannerLogs]);
 
   const setCustomLogoUrl = (url: string | undefined) => {
     setCustomLogoUrlState(url);
@@ -97,60 +134,75 @@ export const App: React.FC = () => {
     }
   };
 
-  // ── Load everything from the server once, on mount ──
+  // Helper to sync latest database state from server
+  const fetchStateFromServer = async () => {
+    try {
+      const res = await fetch('/api/state');
+      const data = await res.json();
+      if (data.success && data.state) {
+        const s = data.state;
+        const savedLogo = localStorage.getItem('courtside_custom_logo_url') || undefined;
+
+        setTickets((prevLocal) => {
+          const serverTickets: PassTicket[] = s.tickets || [];
+          const map = new Map<string, PassTicket>();
+          // Put server tickets
+          serverTickets.forEach((t) => map.set(t.id || t.ticketCode, t));
+          // Put local tickets if not in server map yet
+          prevLocal.forEach((t) => {
+            const key = t.id || t.ticketCode;
+            if (!map.has(key)) map.set(key, t);
+          });
+          return Array.from(map.values());
+        });
+
+        setEvents(s.events?.length ? s.events : INITIAL_EVENTS);
+        setOrders(s.orders || []);
+        setCustomers(s.customers || []);
+        setScanners(s.scanners?.length ? s.scanners : INITIAL_SCANNERS);
+        setScannerLogs((prevLocal) => {
+          const serverLogs: ScannerLog[] = s.scannerLogs || [];
+          const map = new Map<string, ScannerLog>();
+          serverLogs.forEach((l) => map.set(l.id, l));
+          prevLocal.forEach((l) => { if (!map.has(l.id)) map.set(l.id, l); });
+          return Array.from(map.values());
+        });
+        setActivities(s.activities?.length ? s.activities : INITIAL_ACTIVITIES);
+        setNotifications(s.notifications || []);
+        const logoToUse = s.customLogoUrl || savedLogo;
+        setCustomLogoUrlState(logoToUse);
+        if (logoToUse) {
+          try { localStorage.setItem('courtside_custom_logo_url', logoToUse); } catch {}
+        }
+        setUsers(s.users?.length ? s.users : INITIAL_USERS);
+        return true;
+      }
+    } catch (err) {
+      console.error('Failed to sync /api/state:', err);
+    }
+    return false;
+  };
+
+  // ── Load everything from the server on mount and setup polling ──
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch('/api/state');
-        const data = await res.json();
-        if (cancelled) return;
-        if (data.success && data.state) {
-          const s = data.state;
-          const savedLogo = localStorage.getItem('courtside_custom_logo_url') || undefined;
-          setTickets(s.tickets || []);
-          setEvents(s.events?.length ? s.events : INITIAL_EVENTS);
-          setOrders(s.orders || []);
-          setCustomers(s.customers || []);
-          setScanners(s.scanners?.length ? s.scanners : INITIAL_SCANNERS);
-          setScannerLogs(s.scannerLogs || []);
-          setActivities(s.activities?.length ? s.activities : INITIAL_ACTIVITIES);
-          setNotifications(s.notifications || []);
-          const logoToUse = s.customLogoUrl || savedLogo;
-          setCustomLogoUrlState(logoToUse);
-          if (logoToUse) {
-            try { localStorage.setItem('courtside_custom_logo_url', logoToUse); } catch {}
-          }
-          setUsers(s.users?.length ? s.users : INITIAL_USERS);
-        } else {
-          setLoadError(data.error || 'Failed to load data from the server.');
-          // Fall back to defaults so the app is at least usable.
-          setEvents(INITIAL_EVENTS);
-          setUsers(INITIAL_USERS);
-          setScanners(INITIAL_SCANNERS);
-          setActivities(INITIAL_ACTIVITIES);
-        }
-      } catch (err) {
-        console.error('Failed to load /api/state:', err);
-        if (!cancelled) {
-          setLoadError('Could not reach the server. Check your connection and try refreshing.');
-          setEvents(INITIAL_EVENTS);
-          setUsers(INITIAL_USERS);
-          setScanners(INITIAL_SCANNERS);
-          setActivities(INITIAL_ACTIVITIES);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
+      await fetchStateFromServer();
+      if (!cancelled) setIsLoading(false);
     })();
-    return () => { cancelled = true; };
+
+    // Poll every 12 seconds so PWA scanners pick up passes generated on other devices
+    const interval = setInterval(() => {
+      fetchStateFromServer();
+    }, 12000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
-  // ── Auto-save everything back to the server (and from there, to Google
-  // Sheets or the local JSON file) whenever it changes. Debounced so a
-  // burst of changes (e.g. generating 50 tickets) collapses into one
-  // request instead of 50. Skipped until the initial load finishes, so
-  // this doesn't immediately re-save the data it just loaded. ──
+  // ── Auto-save everything back to the server whenever state changes ──
   const saveTimerRef = React.useRef<any>(null);
   useEffect(() => {
     if (isLoading) return;
@@ -506,7 +558,8 @@ export const App: React.FC = () => {
     const scanTime = new Date().toLocaleTimeString();
 
     // Owner / Super Admin Master Passcode Override
-    if (ticketCode.trim() === '004455') {
+    const rawCodeInput = (ticketCode || '').trim();
+    if (rawCodeInput === '004455' || rawCodeInput.toUpperCase() === '004455') {
       handleAuthenticateUser('004455');
       const masterLog: ScannerLog = {
         id: `log-${Date.now()}`,
@@ -545,9 +598,36 @@ export const App: React.FC = () => {
       };
     }
 
-    const ticket = tickets.find(
-      (t) => t.ticketCode.toUpperCase() === ticketCode.toUpperCase()
-    );
+    // Extract potential code candidate tokens from scanned raw text
+    const cleanRaw = rawCodeInput.replace(/^["']|["']$/g, '').toUpperCase();
+    const candidateTokens = new Set<string>();
+    if (cleanRaw) candidateTokens.add(cleanRaw);
+
+    // Split by delimiters (| : ; , / space newline ? =)
+    cleanRaw.split(/[|:;,\/\s\n?=&]+/).forEach((part) => {
+      const p = part.trim();
+      if (p.length >= 3) candidateTokens.add(p);
+    });
+
+    const ticket = tickets.find((t) => {
+      const code = (t.ticketCode || '').trim().toUpperCase();
+      const id = (t.id || '').trim().toUpperCase();
+      const qrData = (t.qrCodeData || '').trim().toUpperCase();
+
+      if (code && candidateTokens.has(code)) return true;
+      if (id && candidateTokens.has(id)) return true;
+      if (qrData && (qrData === cleanRaw || candidateTokens.has(qrData))) return true;
+
+      // Prefix / Substring matching if token length >= 3
+      for (const tok of candidateTokens) {
+        if (tok.length >= 3) {
+          if (code && (code === tok || tok.includes(code) || code.includes(tok))) return true;
+          if (id && (id === tok || tok.includes(id) || id.includes(tok))) return true;
+          if (qrData && (qrData === tok || qrData.startsWith(tok) || tok.startsWith(qrData))) return true;
+        }
+      }
+      return false;
+    });
 
     if (!ticket) {
       const newLog: ScannerLog = {
@@ -825,6 +905,7 @@ export const App: React.FC = () => {
               tickets={visibleTickets}
               onScanPass={handleScanPass}
               scannerLogs={scannerLogs}
+              onSyncState={fetchStateFromServer}
             />
           )}
 

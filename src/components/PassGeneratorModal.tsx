@@ -367,20 +367,20 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[95vh] sm:max-h-[92vh] flex flex-col">
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/30">
-              <Sparkles className="w-5 h-5" />
+        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h3 className="text-lg font-heading font-black text-white uppercase tracking-wider">
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-lg font-heading font-black text-white uppercase tracking-wider truncate">
                 Pass & Ticket Studio
               </h3>
-              <p className="text-xs text-slate-400">
-                Choose Pass Type (Ticket, Staff Badge, QR Code), customize bold event text, and generate copies
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate">
+                Choose Pass Type, customize event text, and generate digital passes
               </p>
             </div>
           </div>
@@ -390,7 +390,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
               setGeneratedSuccess(null);
               onClose();
             }}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
@@ -400,31 +400,31 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
         {generatedSuccess ? (
           /* SUCCESS STATE — full results gallery, same real export logic for
              all three pass types (Ticket / Staff Pass / QR-only). */
-          <div className="p-6 sm:p-8 space-y-6 overflow-y-auto custom-scrollbar">
+          <div className="p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-y-auto custom-scrollbar">
             <div className="text-center max-w-2xl mx-auto">
-              <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
-                <Check className="w-8 h-8" />
+              <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
+                <Check className="w-6 h-6 sm:w-8 sm:h-8" />
               </div>
-              <h3 className="text-2xl font-heading font-black text-white uppercase mt-4">
+              <h3 className="text-lg sm:text-2xl font-heading font-black text-white uppercase mt-3 sm:mt-4">
                 {generatedSuccess.length === 1 ? 'Pass Generated Successfully!' : `${generatedSuccess.length} Passes Generated!`}
               </h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-1">
                 Saved to your workspace matrix. Export any pass below, or the whole batch at once.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-3 pb-2">
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2 sm:gap-3 pb-2">
               <button
                 onClick={handleDownloadAllZip}
                 disabled={zipping}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2"
               >
                 {zipping ? <Loader2 className="w-4 h-4 animate-spin text-emerald-400" /> : <PackageCheck className="w-4 h-4 text-emerald-400" />}
                 {zipping ? 'Zipping…' : 'Download All (ZIP)'}
               </button>
               <button
                 onClick={handlePrintAll}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2"
               >
                 <Printer className="w-4 h-4" /> Print / Save PDF
               </button>
@@ -433,7 +433,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
                   setGeneratedSuccess(null);
                   onClose();
                 }}
-                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 text-center"
               >
                 Back to Matrix
               </button>

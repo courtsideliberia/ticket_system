@@ -135,13 +135,13 @@ async function ensureTabsExist() {
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId!,
       range: `${tab}!A1`,
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: { values: [HEADERS[tab]] }
     });
   }
 }
 
-function chunkString(str: string, size = 40000): string[] {
+function chunkString(str: string, size = 15000): string[] {
   if (!str) return [''];
   const chunks: string[] = [];
   for (let i = 0; i < str.length; i += size) {
@@ -251,42 +251,66 @@ const rowFns: Record<Exclude<TabName, 'Meta'>, (r: any) => any[]> = {
 
 async function pushStateToSheets(state: AppState) {
   const sheets = getSheetsClient();
-  const writeTab = async (tab: TabName, rows: any[][]) => {
-    await sheets.spreadsheets.values.clear({ spreadsheetId: spreadsheetId!, range: `${tab}!A2:ZZ` });
-    if (rows.length === 0) return;
-    await sheets.spreadsheets.values.update({
+  const rangesToClear = TABS.map((tab) => `${tab}!A2:ZZ`);
+
+  // 1. Clear all tabs in a single batch request
+  try {
+    await sheets.spreadsheets.values.batchClear({
       spreadsheetId: spreadsheetId!,
-      range: `${tab}!A2`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: rows }
+      requestBody: { ranges: rangesToClear }
     });
+  } catch (err) {
+    console.warn('Google Sheets batchClear warning:', err);
+  }
+
+  // 2. Prepare all tab rows for a single batchUpdate request
+  const data: any[] = [];
+  const addTabData = (tab: TabName, rows: any[][]) => {
+    if (rows.length > 0) {
+      data.push({
+        range: `${tab}!A2`,
+        values: rows
+      });
+    }
   };
 
-  await writeTab('Users', state.users.map(rowFns.Users));
-  await writeTab('Events', state.events.map(rowFns.Events));
-  await writeTab('Tickets', state.tickets.map(rowFns.Tickets));
-  await writeTab('Orders', state.orders.map(rowFns.Orders));
-  await writeTab('Customers', state.customers.map(rowFns.Customers));
-  await writeTab('Scanners', state.scanners.map(rowFns.Scanners));
-  await writeTab('ScannerLogs', state.scannerLogs.map(rowFns.ScannerLogs));
-  await writeTab('Activities', state.activities.map(rowFns.Activities));
-  await writeTab('Notifications', state.notifications.map(rowFns.Notifications));
-  await writeTab('Meta', [['customLogoUrl', ...chunkString(JSON.stringify(state.customLogoUrl || ''))]]);
+  addTabData('Users', state.users.map(rowFns.Users));
+  addTabData('Events', state.events.map(rowFns.Events));
+  addTabData('Tickets', state.tickets.map(rowFns.Tickets));
+  addTabData('Orders', state.orders.map(rowFns.Orders));
+  addTabData('Customers', state.customers.map(rowFns.Customers));
+  addTabData('Scanners', state.scanners.map(rowFns.Scanners));
+  addTabData('ScannerLogs', state.scannerLogs.map(rowFns.ScannerLogs));
+  addTabData('Activities', state.activities.map(rowFns.Activities));
+  addTabData('Notifications', state.notifications.map(rowFns.Notifications));
+  addTabData('Meta', [['customLogoUrl', ...chunkString(JSON.stringify(state.customLogoUrl || ''))]]);
+
+  if (data.length > 0) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: spreadsheetId!,
+      requestBody: {
+        valueInputOption: 'RAW',
+        data: data
+      }
+    });
+  }
 }
 
-// ── Write queue (debounced) ──
+// ── Write queue (debounced with rate-limiting guard) ──
 let pendingWrite = false;
 let debounceTimer: any = null;
 let lastFlushAt = 0;
+let backoffMs = 0;
 const isServerless = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
-const DEBOUNCE_MS = isServerless ? 0 : 1200;
-const MAX_WAIT_MS = isServerless ? 0 : 4000;
+const DEBOUNCE_MS = isServerless ? 0 : 6000;
+const MAX_WAIT_MS = isServerless ? 0 : 15000;
 
 function scheduleFlush() {
   pendingWrite = true;
   if (debounceTimer) clearTimeout(debounceTimer);
   const sinceLastFlush = Date.now() - lastFlushAt;
-  const delay = sinceLastFlush >= MAX_WAIT_MS ? 0 : DEBOUNCE_MS;
+  const baseDelay = sinceLastFlush >= MAX_WAIT_MS ? 0 : DEBOUNCE_MS;
+  const delay = Math.max(baseDelay, backoffMs);
 
   debounceTimer = setTimeout(async () => {
     if (!pendingWrite || !cachedState) return;
@@ -294,8 +318,11 @@ function scheduleFlush() {
     lastFlushAt = Date.now();
     try {
       await pushStateToSheets(cachedState);
-    } catch (err) {
-      console.error('Failed to write database to Google Sheets:', err);
+      backoffMs = 0; // Reset backoff on success
+    } catch (err: any) {
+      console.warn('Google Sheets save deferred (quota/rate limit):', err?.message || err);
+      // Exponential backoff up to 30s if quota limit hit
+      backoffMs = Math.min(30000, (backoffMs || 5000) * 2);
     }
   }, delay);
 }

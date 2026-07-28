@@ -250,63 +250,64 @@ export const TicketRenderer: React.FC<TicketRendererProps> = ({
       id={`ticket-pass-${ticket.id}`}
       className={`relative w-full max-w-[720px] mx-auto rounded-3xl overflow-hidden shadow-2xl border-2 ${theme.borderClass} bg-gradient-to-br ${theme.bgClass} text-white transition-all ${className}`}
     >
-      {/* Always rendered as a row (never stacks to a column) so the exported
-          image/print output is guaranteed landscape at any container width,
-          as requested — tickets should always be landscape. */}
-      <div className="relative flex flex-row items-stretch">
+      {/* Responsive layout: stacks nicely on small mobile screens (flex-col) and renders classic side-by-side on sm+ (flex-row) */}
+      <div className="relative flex flex-col sm:flex-row items-stretch">
         {/* Left Side Accent Strip */}
-        <div className="bg-amber-500 text-black font-black text-[10px] tracking-widest uppercase flex items-center justify-center p-2.5 w-10 shrink-0 border-r border-amber-400/50 select-none">
-          <span className="-rotate-90 whitespace-nowrap font-mono tracking-widest">
+        <div className="bg-amber-500 text-black font-black text-[10px] tracking-widest uppercase flex sm:flex-col items-center justify-between sm:justify-center p-2 sm:p-2.5 w-full sm:w-10 shrink-0 border-b sm:border-b-0 sm:border-r border-amber-400/50 select-none">
+          <span className="sm:-rotate-90 whitespace-nowrap font-mono tracking-widest">
             OFFICIAL TICKET ★ {ticket.category.replace('_', ' ').toUpperCase()}
+          </span>
+          <span className="sm:hidden text-[9px] font-mono font-bold">
+            {ticket.ticketCode}
           </span>
         </div>
 
         {/* Main Body */}
-        <div className="p-5 sm:p-6 flex-1 space-y-4">
+        <div className="p-3.5 sm:p-6 flex-1 space-y-3 sm:space-y-4">
           {/* Header Bar */}
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-3">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-2 sm:gap-4 border-b border-white/10 pb-2.5 sm:pb-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {ticket.customLogoUrl ? (
-                <img src={ticket.customLogoUrl} alt="Logo" className="h-10 w-auto max-w-[120px] object-contain rounded-lg border border-white/20 bg-black/40 p-1" />
+                <img src={ticket.customLogoUrl} alt="Logo" className="h-8 sm:h-10 w-auto max-w-[100px] sm:max-w-[120px] object-contain rounded-lg border border-white/20 bg-black/40 p-1" />
               ) : (
-                <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-amber-300 font-extrabold text-lg">
-                  <Trophy className="w-5 h-5 text-amber-400" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-amber-300 font-extrabold text-base sm:text-lg">
+                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                 </div>
               )}
               <div>
-                <span className="text-[10px] font-mono font-bold tracking-widest text-amber-400 uppercase block">
+                <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-widest text-amber-400 uppercase block">
                   COURTSIDE EVENT PASS
                 </span>
-                <span className="text-xs text-slate-300 font-semibold tracking-wider">
+                <span className="text-[10px] sm:text-xs text-slate-300 font-semibold tracking-wider block">
                   VERIFIED ADMISSION PASS
                 </span>
               </div>
             </div>
 
-            <div className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/80 text-amber-300 text-xs font-black uppercase tracking-wider shadow-sm flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <div className="px-2.5 sm:px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/80 text-amber-300 text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-sm flex items-center gap-1 shrink-0">
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
               <span>{ticket.category.replace('_', ' ').toUpperCase()}</span>
             </div>
           </div>
 
           {/* BOLD Event Name Headline */}
           <div>
-            <p className="text-[10px] font-bold text-amber-400/90 uppercase tracking-widest">EVENT TITLE</p>
-            <h2 className="text-xl sm:text-2xl font-black text-amber-300 uppercase tracking-tight font-heading leading-tight drop-shadow-md">
+            <p className="text-[9px] sm:text-[10px] font-bold text-amber-400/90 uppercase tracking-widest">EVENT TITLE</p>
+            <h2 className="text-lg sm:text-2xl font-black text-amber-300 uppercase tracking-tight font-heading leading-tight drop-shadow-md">
               {ticket.eventName}
             </h2>
 
             {(hasDate || hasVenue) && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-200 font-medium">
+              <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 mt-1 text-[11px] sm:text-xs text-slate-200 font-medium">
                 {hasDate && (
                   <span className="flex items-center gap-1 text-amber-300 font-bold">
-                    <Calendar className="w-3.5 h-3.5" />
+                    <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     {ticket.eventDate} {ticket.eventTime ? `• ${ticket.eventTime}` : ''}
                   </span>
                 )}
                 {hasVenue && (
                   <span className="flex items-center gap-1 text-slate-300">
-                    <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                    <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
                     {ticket.venue}
                   </span>
                 )}
@@ -316,58 +317,58 @@ export const TicketRenderer: React.FC<TicketRendererProps> = ({
 
           {/* Recipient & Seating Box — ONLY DISPLAY IF PRESENT! */}
           {(hasHolder || hasSeating) && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-2xl bg-black/60 border border-white/10 text-xs font-mono">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-black/60 border border-white/10 text-xs font-mono">
               {hasHolder && (
                 <div className={hasSeating ? 'col-span-2' : 'col-span-4'}>
-                  <p className="text-[9px] text-amber-400 uppercase tracking-wider font-bold">PASS HOLDER</p>
-                  <p className="font-extrabold text-white text-sm truncate">{ticket.holderName}</p>
+                  <p className="text-[8px] sm:text-[9px] text-amber-400 uppercase tracking-wider font-bold">PASS HOLDER</p>
+                  <p className="font-extrabold text-white text-xs sm:text-sm truncate">{ticket.holderName}</p>
                 </div>
               )}
 
               {ticket.section && (
                 <div>
-                  <p className="text-[9px] text-amber-400 uppercase tracking-wider font-bold">SECTION</p>
-                  <p className="font-bold text-amber-300">{ticket.section}</p>
+                  <p className="text-[8px] sm:text-[9px] text-amber-400 uppercase tracking-wider font-bold">SECTION</p>
+                  <p className="font-bold text-amber-300 text-xs">{ticket.section}</p>
                 </div>
               )}
 
               {(ticket.row || ticket.seatNumber) && (
                 <div>
-                  <p className="text-[9px] text-amber-400 uppercase tracking-wider font-bold">ROW / SEAT</p>
-                  <p className="font-bold text-white">{ticket.row || '-'} / {ticket.seatNumber || '-'}</p>
+                  <p className="text-[8px] sm:text-[9px] text-amber-400 uppercase tracking-wider font-bold">ROW / SEAT</p>
+                  <p className="font-bold text-white text-xs">{ticket.row || '-'} / {ticket.seatNumber || '-'}</p>
                 </div>
               )}
 
               {ticket.gateEntry && (
                 <div>
-                  <p className="text-[9px] text-amber-400 uppercase tracking-wider font-bold">GATE</p>
-                  <p className="font-bold text-emerald-400">{ticket.gateEntry}</p>
+                  <p className="text-[8px] sm:text-[9px] text-amber-400 uppercase tracking-wider font-bold">GATE</p>
+                  <p className="font-bold text-emerald-400 text-xs">{ticket.gateEntry}</p>
                 </div>
               )}
             </div>
           )}
 
           {/* Price & Serial */}
-          <div className="flex items-center justify-between text-xs font-mono pt-1">
-            <span className="text-amber-400 font-bold text-sm">
+          <div className="flex items-center justify-between text-xs font-mono pt-0.5 sm:pt-1">
+            <span className="text-amber-400 font-bold text-xs sm:text-sm">
               {hasPrice ? `$${ticket.price} ${ticket.currency}` : 'ADMISSION TICKET'}
             </span>
-            <span className="text-slate-400 font-bold text-[11px]">
+            <span className="text-slate-400 font-bold text-[10px] sm:text-[11px]">
               NO : {ticket.ticketCode}
             </span>
           </div>
         </div>
 
-        {/* Right Stub Section with QR Code */}
+        {/* Stub Section with QR Code */}
         {showStub && (
-          <div className="p-5 w-48 bg-black/40 border-l border-dashed border-white/20 flex flex-col items-center justify-center space-y-3 shrink-0 relative">
-            <div className="p-2 bg-white rounded-xl shadow-lg border border-amber-300">
-              <QRCodeSVG value={ticket.qrCodeData || ticket.ticketCode} size={110} level="H" />
+          <div className="p-3.5 sm:p-5 w-full sm:w-48 bg-black/40 border-t sm:border-t-0 sm:border-l border-dashed border-white/20 flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-3 sm:space-y-3 shrink-0 relative">
+            <div className="p-2 bg-white rounded-xl shadow-lg border border-amber-300 shrink-0">
+              <QRCodeSVG value={ticket.qrCodeData || ticket.ticketCode} size={90} level="H" className="sm:w-[110px] sm:h-[110px]" />
             </div>
 
-            <div className="text-center font-mono space-y-0.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300">SCAN FOR ENTRY</p>
-              <p className="text-[11px] font-extrabold text-white">{ticket.ticketCode}</p>
+            <div className="text-right sm:text-center font-mono space-y-0.5">
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-300">SCAN FOR ENTRY</p>
+              <p className="text-xs sm:text-[11px] font-extrabold text-white">{ticket.ticketCode}</p>
             </div>
           </div>
         )}
