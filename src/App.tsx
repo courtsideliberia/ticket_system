@@ -139,6 +139,7 @@ export const App: React.FC = () => {
   const fetchStateFromServer = async () => {
     try {
       const res = await fetch('/api/state');
+      if (!res.ok) return false;
       const data = await res.json();
       if (data.success && data.state) {
         const s = data.state;
@@ -146,48 +147,46 @@ export const App: React.FC = () => {
 
         setTickets((prevLocal) => {
           const serverTickets: PassTicket[] = s.tickets || [];
-          const map = new Map<string, PassTicket>();
-          // Put server tickets
-          serverTickets.forEach((t) => map.set(t.id || t.ticketCode, t));
-          // Put local tickets if not in server map yet
+          const localScanMap = new Map<string, PassTicket>();
           prevLocal.forEach((t) => {
-            const key = t.id || t.ticketCode;
-            if (!map.has(key)) {
-              map.set(key, t);
-            } else {
-              // If local ticket was scanned, keep scanned status
-              const existingServer = map.get(key)!;
-              if (t.status === 'used' || (t.status as string) === 'already_used') {
-                map.set(key, { ...existingServer, status: 'used', scannedAt: t.scannedAt || existingServer.scannedAt, scannedBy: t.scannedBy || existingServer.scannedBy });
-              }
+            if (t.status === 'used' || (t.status as string) === 'already_used') {
+              localScanMap.set(t.id || t.ticketCode, t);
             }
           });
-          return Array.from(map.values());
+          // Update scan status for tickets that exist on server
+          return serverTickets.map((st) => {
+            const key = st.id || st.ticketCode;
+            const localScanned = localScanMap.get(key);
+            if (localScanned && st.status === 'valid') {
+              return {
+                ...st,
+                status: 'used',
+                scannedAt: localScanned.scannedAt || st.scannedAt,
+                scannedBy: localScanned.scannedBy || st.scannedBy,
+                gateEntry: localScanned.gateEntry || st.gateEntry,
+              };
+            }
+            return st;
+          });
         });
 
-        setEvents(s.events?.length ? s.events : INITIAL_EVENTS);
+        setEvents(s.events || INITIAL_EVENTS);
         setOrders(s.orders || []);
         setCustomers(s.customers || []);
-        setScanners(s.scanners?.length ? s.scanners : INITIAL_SCANNERS);
-        setScannerLogs((prevLocal) => {
-          const serverLogs: ScannerLog[] = s.scannerLogs || [];
-          const map = new Map<string, ScannerLog>();
-          serverLogs.forEach((l) => map.set(l.id, l));
-          prevLocal.forEach((l) => { if (!map.has(l.id)) map.set(l.id, l); });
-          return Array.from(map.values());
-        });
-        setActivities(s.activities?.length ? s.activities : INITIAL_ACTIVITIES);
+        setScanners(s.scanners || INITIAL_SCANNERS);
+        setScannerLogs(s.scannerLogs || []);
+        setActivities(s.activities || INITIAL_ACTIVITIES);
         setNotifications(s.notifications || []);
         const logoToUse = s.customLogoUrl || savedLogo;
         setCustomLogoUrlState(logoToUse);
         if (logoToUse) {
           try { localStorage.setItem('courtside_custom_logo_url', logoToUse); } catch {}
         }
-        setUsers(s.users?.length ? s.users : INITIAL_USERS);
+        setUsers(s.users || INITIAL_USERS);
         return true;
       }
-    } catch (err) {
-      console.error('Failed to sync /api/state:', err);
+    } catch {
+      // Offline mode or server restarting - fallback gracefully
     }
     return false;
   };
@@ -226,17 +225,21 @@ export const App: React.FC = () => {
   }, []);
 
   // Helper to force immediate persistence to server (bypassing debounce)
-  const saveStateImmediately = (customPayload?: Partial<AppState>) => {
+  const saveStateImmediately = async (customPayload?: Partial<AppState>) => {
     const payload = {
       tickets, events, orders, customers, scanners,
       scannerLogs, activities, notifications, users, customLogoUrl,
       ...customPayload
     };
-    fetch('/api/state', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).catch((err) => console.error('Instant save failed:', err));
+    try {
+      await fetch('/api/state', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch {
+      // Offline mode or server restarting
+    }
   };
 
   // ── Auto-save everything back to the server whenever state changes ──
@@ -788,7 +791,7 @@ export const App: React.FC = () => {
       };
     }
 
-    // Gate Access Validation Logic (Regular, VIP, VVIP)
+    // Gate Access Validation Logic (Strict Gate Category Matching)
     // Note: All Access passes can enter at any gate!
     const normalizedGate = gateName.toLowerCase();
     const cat = (ticket.category || 'regular').toLowerCase();
@@ -798,30 +801,29 @@ export const App: React.FC = () => {
 
     if (cat === 'all_access') {
       isGateAllowed = true;
-    } else {
-      let gateTier = 1; // 1 = regular, 2 = vip, 3 = vvip
-      if (normalizedGate.includes('vvip')) {
-        gateTier = 3;
-      } else if (normalizedGate.includes('vip')) {
-        gateTier = 2;
-      } else {
-        gateTier = 1;
-      }
-
-      let passTier = 1;
-      if (cat === 'vvip' || cat === 'courtside_box' || cat === 'courtside_floor') {
-        passTier = 3;
-      } else if (cat === 'vip' || cat === 'courtside_vip' || cat === 'player_staff' || cat === 'media') {
-        passTier = 2;
-      } else {
-        passTier = 1;
-      }
-
-      if (passTier < gateTier) {
+    } else if (normalizedGate.includes('vvip')) {
+      // VVIP Gate accepts ONLY VVIP tier passes (vvip, courtside_box, courtside_floor)
+      const isVVIPPass = cat === 'vvip' || cat === 'courtside_box' || cat === 'courtside_floor';
+      if (!isVVIPPass) {
         isGateAllowed = false;
-        const requiredGate = passTier === 1 ? 'Regular Gate' : 'VIP Gate';
-        const formattedCat = cat === 'regular' ? 'Regular' : cat.replace('_', ' ').toUpperCase();
-        gateReason = `WRONG GATE • ${formattedCat} pass is not valid for ${gateName}. (Please proceed to ${requiredGate})`;
+        const formattedCat = cat === 'regular' ? 'REGULAR' : cat.replace('_', ' ').toUpperCase();
+        gateReason = `WRONG GATE • This scanner is set to VVIP Gate. ${formattedCat} pass cannot scan here.`;
+      }
+    } else if (normalizedGate.includes('vip')) {
+      // VIP Gate accepts ONLY VIP tier passes (vip, courtside_vip, player_staff, media)
+      const isVIPPass = cat === 'vip' || cat === 'courtside_vip' || cat === 'player_staff' || cat === 'media';
+      if (!isVIPPass) {
+        isGateAllowed = false;
+        const formattedCat = cat === 'regular' ? 'REGULAR' : cat.replace('_', ' ').toUpperCase();
+        gateReason = `WRONG GATE • This scanner is set to VIP Gate. ${formattedCat} pass cannot scan here. (Please proceed to Regular Gate)`;
+      }
+    } else {
+      // Regular Gate accepts ONLY Regular & General Access passes
+      const isRegularPass = cat === 'regular' || cat === 'general_access';
+      if (!isRegularPass) {
+        isGateAllowed = false;
+        const formattedCat = cat.replace('_', ' ').toUpperCase();
+        gateReason = `WRONG GATE • This scanner is set to Regular Gate. ${formattedCat} pass cannot scan here. (Please proceed to VIP/VVIP Gate)`;
       }
     }
 

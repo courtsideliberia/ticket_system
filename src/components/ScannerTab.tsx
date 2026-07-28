@@ -290,9 +290,9 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { id: 'Regular Gate', label: 'Regular Gate', badge: 'REGULAR', desc: 'Standard Ticket Entry' },
-            { id: 'VIP Gate', label: 'VIP Gate', badge: 'VIP', desc: 'VIP Ticket Access' },
-            { id: 'VVIP Gate', label: 'VVIP Gate', badge: 'VVIP', desc: 'Courtside & Premium' },
+            { id: 'Regular Gate', label: 'Regular Gate', badge: 'REGULAR ONLY', desc: 'Accepts Regular Passes Only' },
+            { id: 'VIP Gate', label: 'VIP Gate', badge: 'VIP ONLY', desc: 'Accepts VIP Passes Only' },
+            { id: 'VVIP Gate', label: 'VVIP Gate', badge: 'VVIP ONLY', desc: 'Accepts VVIP & Courtside Passes Only' },
           ].map((gate) => {
             const isSelected = gateName === gate.id;
             return (
@@ -330,7 +330,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           })}
         </div>
         <p className="text-[10px] text-amber-400/90 font-medium pt-1">
-          ✨ Note: <strong className="text-amber-300">All Access Passes</strong> can enter at any gate (Regular, VIP, or VVIP).
+          🔒 <strong className="text-amber-300">Strict Category Enforcement:</strong> Scanner rejects passes that do not match the selected gate tier. <span className="text-slate-300">(All Access passes enter at any gate).</span>
         </p>
       </div>
 

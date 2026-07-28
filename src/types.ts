@@ -40,11 +40,51 @@ export type PassCategory =
   | 'player_staff';
 
 export type TicketCanvasThemeId =
+  | 'gold_trophy'
+  | 'red_slam_dunk'
+  | 'blue_arena'
+  | 'geometric_gold_vip'
+  | 'grunge_dunker'
+  | 'emerald_press'
+  | 'royal_purple'
+  | 'neon_cyberpunk'
+  | 'platinum_suite'
+  | 'vintage_classic'
+  | 'minimal_modern'
+  | 'electric_spike'
+  | 'flame_fire'
+  | 'crimson_stadium'
+  | 'midnight_stealth'
+  | 'diamond_all_access'
   | 'gold_foil_vip'
   | 'purple_gold_sports'
   | 'neon_esports'
   | 'sleek_black_match'
   | 'courtside_classic';
+
+export type FontFamilyOption = 'sans' | 'heading' | 'serif' | 'mono' | 'display' | 'stencil';
+export type BorderStyleOption = 'solid_gold' | 'neon_glow' | 'double_metallic' | 'dashed_stub' | 'none' | 'chamfer';
+export type BadgeStyleOption = 'pill_stars' | 'shield_crest' | 'metallic_ribbon' | 'gold_tag' | 'minimal_block';
+export type QRFrameStyleOption = 'security_glow' | 'gold_metallic' | 'corner_crosshairs' | 'glass_card' | 'minimal';
+export type CornerStyleOption = 'notch_cutouts' | 'rounded_lg' | 'sharp_square' | 'pill_edges';
+export type TicketOrientation = 'portrait' | 'landscape';
+export type SecurityWatermarkStyle = 'shield_logo' | 'starburst_hologram' | 'official_seal' | 'none';
+export type SponsorLogoPlacement = 'top_header' | 'bottom_stub' | 'footer' | 'none';
+
+export interface TemplateCustomization {
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  fontFamily?: FontFamilyOption;
+  fontColor?: string;
+  borderStyle?: BorderStyleOption;
+  badgeStyle?: BadgeStyleOption;
+  qrFrameStyle?: QRFrameStyleOption;
+  orientation?: TicketOrientation;
+  cornerStyle?: CornerStyleOption;
+  securityWatermark?: SecurityWatermarkStyle;
+  sponsorLogoPosition?: SponsorLogoPlacement;
+}
 
 export type PassStatus = 'valid' | 'used' | 'revoked' | 'expired' | 'blocked' | 'refunded' | 'transferred';
 

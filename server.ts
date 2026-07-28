@@ -186,48 +186,47 @@ export async function createApp() {
       const incoming = req.body as Partial<AppState>;
       const current = readState();
 
-      // Merge tickets intelligently by ID/code so offline or sync clients don't wipe out passes
-      const ticketMap = new Map<string, PassTicket>();
-      (current.tickets || []).forEach((t) => ticketMap.set(t.id || t.ticketCode, t));
-      
-      (incoming.tickets || []).forEach((t) => {
-        const key = t.id || t.ticketCode;
-        const existing = ticketMap.get(key);
-        if (existing) {
-          // If existing ticket on server was already used or scanned, preserve scan status
-          const isScannedOnServer = existing.status === 'used' || (existing.status as string) === 'already_used' || !!existing.scannedAt;
-          ticketMap.set(key, {
-            ...t,
-            status: isScannedOnServer ? existing.status : t.status,
-            scannedAt: existing.scannedAt || t.scannedAt,
-            scannedBy: existing.scannedBy || t.scannedBy,
-            gateEntry: existing.gateEntry || t.gateEntry,
-          });
-        } else {
-          ticketMap.set(key, t);
-        }
-      });
+      // If incoming contains tickets array, use it directly (preserving scan metadata if needed)
+      let finalTickets: PassTicket[] = current.tickets || [];
+      if (Array.isArray(incoming.tickets)) {
+        const currentScanMap = new Map<string, { status: PassTicket['status']; scannedAt?: string; scannedBy?: string; gateEntry?: string }>();
+        (current.tickets || []).forEach((t) => {
+          if (t.status === 'used' || (t.status as string) === 'already_used' || t.scannedAt) {
+            currentScanMap.set(t.id || t.ticketCode, {
+              status: t.status,
+              scannedAt: t.scannedAt,
+              scannedBy: t.scannedBy,
+              gateEntry: t.gateEntry,
+            });
+          }
+        });
 
-      // Merge events
-      const eventMap = new Map<string, EventRecord>();
-      (current.events || []).forEach((e) => eventMap.set(e.id, e));
-      (incoming.events || []).forEach((e) => eventMap.set(e.id, e));
-
-      // Merge scannerLogs
-      const logMap = new Map<string, ScannerLog>();
-      (current.scannerLogs || []).forEach((l) => logMap.set(l.id, l));
-      (incoming.scannerLogs || []).forEach((l) => logMap.set(l.id, l));
+        finalTickets = incoming.tickets.map((t) => {
+          const key = t.id || t.ticketCode;
+          const scanInfo = currentScanMap.get(key);
+          if (scanInfo && t.status === 'valid') {
+            return {
+              ...t,
+              status: scanInfo.status,
+              scannedAt: scanInfo.scannedAt || t.scannedAt,
+              scannedBy: scanInfo.scannedBy || t.scannedBy,
+              gateEntry: scanInfo.gateEntry || t.gateEntry,
+            };
+          }
+          return t;
+        });
+      }
 
       const merged: AppState = {
-        users: incoming.users?.length ? incoming.users : current.users ?? [],
-        events: Array.from(eventMap.values()),
-        tickets: Array.from(ticketMap.values()),
-        orders: incoming.orders ?? current.orders ?? [],
-        customers: incoming.customers ?? current.customers ?? [],
-        scanners: incoming.scanners ?? current.scanners ?? [],
-        scannerLogs: Array.from(logMap.values()),
-        activities: incoming.activities ?? current.activities ?? [],
-        notifications: incoming.notifications ?? current.notifications ?? [],
+        users: Array.isArray(incoming.users) ? incoming.users : current.users ?? [],
+        events: Array.isArray(incoming.events) ? incoming.events : current.events ?? [],
+        tickets: finalTickets,
+        orders: Array.isArray(incoming.orders) ? incoming.orders : current.orders ?? [],
+        customers: Array.isArray(incoming.customers) ? incoming.customers : current.customers ?? [],
+        scanners: Array.isArray(incoming.scanners) ? incoming.scanners : current.scanners ?? [],
+        scannerLogs: Array.isArray(incoming.scannerLogs) ? incoming.scannerLogs : current.scannerLogs ?? [],
+        activities: Array.isArray(incoming.activities) ? incoming.activities : current.activities ?? [],
+        notifications: Array.isArray(incoming.notifications) ? incoming.notifications : current.notifications ?? [],
         customLogoUrl: incoming.customLogoUrl !== undefined ? incoming.customLogoUrl : current.customLogoUrl
       };
       writeState(merged);
