@@ -1,7 +1,8 @@
 import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { PassTicket, TicketCanvasThemeId } from '../types';
-import { CANVAS_THEMES, PASS_TEMPLATES } from '../lib/ticketTemplateMap';
+import { PassTicket, TicketCanvasThemeId, TemplateCustomization } from '../types';
+import { CANVAS_THEMES, PASS_TEMPLATES, getAllThemes, CanvasThemeDefinition } from '../lib/ticketTemplateMap';
+import { renderPattern, SecurityWatermarkPattern } from './ticket-patterns/TicketPatterns';
 import { Calendar, MapPin, Trophy, Sparkles, Award, Gamepad2, User, QrCode } from 'lucide-react';
 
 import { formatCurrency } from '../lib/currency';
@@ -13,6 +14,22 @@ interface TicketRendererProps {
   className?: string;
   onPrint?: () => void;
 }
+
+const FONT_CLASS: Record<string, string> = {
+  sans: 'font-sans',
+  heading: 'font-heading',
+  serif: 'font-serif',
+  mono: 'font-mono',
+  display: 'font-heading uppercase tracking-tight',
+  stencil: 'font-mono uppercase tracking-[0.2em]',
+};
+
+const CORNER_CLASS: Record<string, string> = {
+  notch_cutouts: 'rounded-2xl [clip-path:polygon(16px_0,calc(100%-16px)_0,100%_16px,100%_calc(100%-16px),calc(100%-16px)_100%,16px_100%,0_calc(100%-16px),0_16px)]',
+  rounded_lg: 'rounded-3xl',
+  sharp_square: 'rounded-none',
+  pill_edges: 'rounded-[2.5rem]',
+};
 
 // Authentic SVG Barcode Generator Component
 const BarcodeSVG: React.FC<{ code: string; className?: string }> = ({ code, className = 'h-8 text-slate-100' }) => {
@@ -235,7 +252,7 @@ export const TicketRenderer: React.FC<TicketRendererProps> = ({
   }
 
   // =========================================================
-  // TYPE 1: TICKET (LANDSCAPE FORMAT)
+  // TYPE 1: TICKET — fully template-engine driven
   // =========================================================
   const themeKey: TicketCanvasThemeId = ticket.themeId || (
     ticket.category === 'courtside_vip' ? 'gold_foil_vip' :
@@ -244,72 +261,207 @@ export const TicketRenderer: React.FC<TicketRendererProps> = ({
     ticket.category === 'media' ? 'sleek_black_match' : 'courtside_classic'
   );
 
-  const theme = CANVAS_THEMES[themeKey] || CANVAS_THEMES.gold_foil_vip;
+  const allThemes = getAllThemes();
+  const theme: CanvasThemeDefinition = allThemes[themeKey] || CANVAS_THEMES.gold_foil_vip;
   const legacyTpl = PASS_TEMPLATES[ticket.category] || PASS_TEMPLATES.general_access;
+  const c: TemplateCustomization = ticket.customization || {};
+
+  // Resolve effective values: per-ticket customization overrides win, theme is the default.
+  const mode = c.mode || theme.mode;
+  const isLight = mode === 'light';
+  const colors = {
+    primary: c.primaryColor || theme.colors.primary,
+    secondary: c.secondaryColor || theme.colors.secondary,
+    accent: c.accentColor || theme.colors.accent,
+  };
+  const orientation = c.orientation || theme.defaultOrientation;
+  const isPortrait = orientation === 'portrait';
+  const cornerStyle = c.cornerStyle || theme.cornerStyle;
+  const borderStyle = c.borderStyle || theme.borderStyle;
+  const badgeStyle = c.badgeStyle || theme.badgeStyle;
+  const qrFrameStyle = c.qrFrameStyle || theme.qrFrameStyle;
+  const fontFamily = c.fontFamily || theme.fontFamily;
+  const sponsorPos = c.sponsorLogoPosition || theme.sponsorLogoPosition;
+  const watermark = c.securityWatermark || theme.securityWatermark;
+  const fontColor = c.fontColor;
+
+  const fontClass = FONT_CLASS[fontFamily] || 'font-sans';
+  const cornerClass = CORNER_CLASS[cornerStyle] || 'rounded-3xl';
+
+  // Border rendering per style — each produces a distinct premium finish
+  // without fighting the corner clip-path above.
+  const borderStyleProps: React.CSSProperties = (() => {
+    switch (borderStyle) {
+      case 'solid_gold':
+        return { border: `2px solid ${colors.accent}` };
+      case 'neon_glow':
+        return { border: `1.5px solid ${colors.accent}`, boxShadow: `0 0 24px ${colors.accent}66, 0 0 2px ${colors.accent}` };
+      case 'double_metallic':
+        return { border: `2px solid ${colors.accent}`, boxShadow: `0 0 0 4px ${colors.primary}, 0 0 0 5px ${colors.accent}55` };
+      case 'dashed_stub':
+        return { border: `2px dashed ${colors.accent}99` };
+      case 'chamfer':
+        return { border: `2px solid ${colors.accent}`, boxShadow: `inset 0 0 0 3px ${colors.secondary}` };
+      case 'none':
+      default:
+        return { border: '1px solid rgba(255,255,255,0.06)' };
+    }
+  })();
+
+  const panelBg = isLight ? 'bg-white/70 border-black/10' : 'bg-black/50 border-white/10';
+  const panelText = isLight ? 'text-slate-900' : 'text-white';
+  const mutedText = isLight ? 'text-slate-500' : 'text-slate-300';
+  const bgBase = isLight ? 'bg-gradient-to-br from-white via-slate-50 to-slate-100' : `bg-gradient-to-br ${theme.bgClass}`;
+
+  const BadgeShape: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const base = 'text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-sm flex items-center gap-1 shrink-0 px-2.5 sm:px-3 py-1';
+    switch (badgeStyle) {
+      case 'shield_crest':
+        return (
+          <div
+            className={`${base} [clip-path:polygon(50%_0,100%_18%,100%_75%,50%_100%,0_75%,0_18%)] px-3.5`}
+            style={{ background: `${colors.accent}33`, color: colors.accent, border: `1px solid ${colors.accent}` }}
+          >
+            {children}
+          </div>
+        );
+      case 'metallic_ribbon':
+        return (
+          <div
+            className={`${base} [clip-path:polygon(8%_0,100%_0,92%_100%,0_100%)]`}
+            style={{ background: `linear-gradient(90deg, ${colors.accent}, ${colors.primary})`, color: isLight ? '#1e293b' : '#fff' }}
+          >
+            {children}
+          </div>
+        );
+      case 'gold_tag':
+        return (
+          <div
+            className={`${base} rounded-l-full [clip-path:polygon(0_0,85%_0,100%_50%,85%_100%,0_100%)]`}
+            style={{ background: colors.accent, color: '#1e293b' }}
+          >
+            {children}
+          </div>
+        );
+      case 'minimal_block':
+        return (
+          <div className={`${base} rounded-none`} style={{ border: `1px solid ${colors.accent}`, color: colors.accent }}>
+            {children}
+          </div>
+        );
+      case 'pill_stars':
+      default:
+        return (
+          <div className={`${base} rounded-full`} style={{ background: `${colors.accent}22`, color: colors.accent, border: `1px solid ${colors.accent}88` }}>
+            {children}
+          </div>
+        );
+    }
+  };
+
+  const QrFrame: React.FC<{ size: number }> = ({ size }) => {
+    const qrNode = <QRCodeSVG value={ticket.qrCodeData || ticket.ticketCode} size={size} level="H" />;
+    switch (qrFrameStyle) {
+      case 'gold_metallic':
+        return (
+          <div className="relative p-2 rounded-xl" style={{ background: `linear-gradient(135deg, ${colors.accent}, ${colors.primary}, ${colors.accent})` }}>
+            <div className="bg-white rounded-lg p-1.5">{qrNode}</div>
+          </div>
+        );
+      case 'corner_crosshairs':
+        return (
+          <div className="relative p-2 bg-white rounded-lg">
+            {qrNode}
+            {(['-top-1 -left-1 border-t-2 border-l-2', '-top-1 -right-1 border-t-2 border-r-2', '-bottom-1 -left-1 border-b-2 border-l-2', '-bottom-1 -right-1 border-b-2 border-r-2']).map((pos, i) => (
+              <span key={i} className={`absolute w-3 h-3 ${pos}`} style={{ borderColor: colors.accent }} />
+            ))}
+          </div>
+        );
+      case 'glass_card':
+        return (
+          <div className="p-2.5 rounded-xl backdrop-blur-md bg-white/80 border border-white/60 shadow-lg">
+            {qrNode}
+          </div>
+        );
+      case 'minimal':
+        return <div className="p-1.5 bg-white rounded-md">{qrNode}</div>;
+      case 'security_glow':
+      default:
+        return (
+          <div className="relative p-2.5 bg-white rounded-xl shadow-lg" style={{ boxShadow: `0 0 18px ${colors.accent}77` }}>
+            {qrNode}
+          </div>
+        );
+    }
+  };
 
   return (
     <div
       id={`ticket-pass-${ticket.id}`}
-      className={`relative w-full max-w-[720px] mx-auto rounded-3xl overflow-hidden shadow-2xl border-2 ${theme.borderClass} bg-gradient-to-br ${theme.bgClass} text-white transition-all ${className}`}
+      className={`relative w-full ${isPortrait ? 'max-w-[420px]' : 'max-w-[720px]'} mx-auto overflow-hidden shadow-2xl ${bgBase} ${panelText} ${fontClass} ${cornerClass} transition-all ${className}`}
+      style={borderStyleProps}
     >
-      {/* Responsive layout: stacks nicely on small mobile screens (flex-col) and renders classic side-by-side on sm+ (flex-row) */}
-      <div className="relative flex flex-col sm:flex-row items-stretch">
-        {/* Left Side Accent Strip */}
-        <div className="bg-amber-500 text-black font-black text-[10px] tracking-widest uppercase flex sm:flex-col items-center justify-between sm:justify-center p-2 sm:p-2.5 w-full sm:w-10 shrink-0 border-b sm:border-b-0 sm:border-r border-amber-400/50 select-none">
-          <span className="sm:-rotate-90 whitespace-nowrap font-mono tracking-widest">
+      {/* Layered SVG background pattern — pure vector, scales cleanly for export */}
+      {renderPattern(theme.patternId, { primary: colors.primary, secondary: colors.secondary, accent: colors.accent })}
+
+      <div className={`relative flex ${isPortrait ? 'flex-col' : 'flex-col sm:flex-row'} items-stretch`}>
+        {/* Left/Top Accent Strip */}
+        <div
+          className={`font-black text-[10px] tracking-widest uppercase flex ${isPortrait ? '' : 'sm:flex-col'} items-center justify-between ${isPortrait ? '' : 'sm:justify-center'} p-2 sm:p-2.5 w-full ${isPortrait ? '' : 'sm:w-10'} shrink-0 border-b ${isPortrait ? '' : 'sm:border-b-0 sm:border-r'} select-none`}
+          style={{ background: colors.accent, color: isLight ? '#1e293b' : '#000', borderColor: `${colors.accent}80` }}
+        >
+          <span className={`${isPortrait ? '' : 'sm:-rotate-90'} whitespace-nowrap font-mono tracking-widest`}>
             OFFICIAL TICKET ★ {ticket.category.replace('_', ' ').toUpperCase()}
           </span>
-          <span className="sm:hidden text-[9px] font-mono font-bold">
-            {ticket.ticketCode}
-          </span>
+          <span className="sm:hidden text-[9px] font-mono font-bold">{ticket.ticketCode}</span>
         </div>
 
         {/* Main Body */}
-        <div className="p-3.5 sm:p-6 flex-1 space-y-3 sm:space-y-4">
+        <div className="relative p-3.5 sm:p-6 flex-1 space-y-3 sm:space-y-4">
           {/* Header Bar */}
-          <div className="flex items-center justify-between gap-2 sm:gap-4 border-b border-white/10 pb-2.5 sm:pb-3">
+          <div className={`flex items-center justify-between gap-2 sm:gap-4 border-b pb-2.5 sm:pb-3`} style={{ borderColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)' }}>
             <div className="flex items-center gap-2 sm:gap-3">
-              {ticket.customLogoUrl ? (
+              {ticket.customLogoUrl && sponsorPos === 'top_header' ? (
                 <img src={ticket.customLogoUrl} alt="Logo" className="h-8 sm:h-10 w-auto max-w-[100px] sm:max-w-[120px] object-contain rounded-lg border border-white/20 bg-black/40 p-1" />
               ) : (
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-amber-300 font-extrabold text-base sm:text-lg">
-                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-base sm:text-lg" style={{ background: `${colors.accent}22`, border: `1px solid ${colors.accent}88` }}>
+                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: colors.accent }} />
                 </div>
               )}
               <div>
-                <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-widest text-amber-400 uppercase block">
-                  COURTSIDE EVENT PASS
+                <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-widest uppercase block" style={{ color: colors.accent }}>
+                  {theme.tagline}
                 </span>
-                <span className="text-[10px] sm:text-xs text-slate-300 font-semibold tracking-wider block">
+                <span className={`text-[10px] sm:text-xs font-semibold tracking-wider block ${mutedText}`}>
                   VERIFIED ADMISSION PASS
                 </span>
               </div>
             </div>
 
-            <div className="px-2.5 sm:px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/80 text-amber-300 text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-sm flex items-center gap-1 shrink-0">
-              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
-              <span>{ticket.category.replace('_', ' ').toUpperCase()}</span>
-            </div>
+            <BadgeShape>
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>{theme.badgeText}</span>
+            </BadgeShape>
           </div>
 
           {/* BOLD Event Name Headline */}
           <div>
-            <p className="text-[9px] sm:text-[10px] font-bold text-amber-400/90 uppercase tracking-widest">EVENT TITLE</p>
-            <h2 className="text-lg sm:text-2xl font-black text-amber-300 uppercase tracking-tight font-heading leading-tight drop-shadow-md">
+            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest" style={{ color: `${colors.accent}cc` }}>EVENT TITLE</p>
+            <h2 className={`text-lg sm:text-2xl font-black uppercase tracking-tight leading-tight drop-shadow-md ${isLight ? '' : ''}`} style={{ color: isLight ? colors.primary : colors.accent }}>
               {ticket.eventName}
             </h2>
 
             {(hasDate || hasVenue) && (
-              <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 mt-1 text-[11px] sm:text-xs text-slate-200 font-medium">
+              <div className={`flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 mt-1 text-[11px] sm:text-xs font-medium ${panelText}`}>
                 {hasDate && (
-                  <span className="flex items-center gap-1 text-amber-300 font-bold">
+                  <span className="flex items-center gap-1 font-bold" style={{ color: colors.accent }}>
                     <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     {ticket.eventDate} {ticket.eventTime ? `• ${ticket.eventTime}` : ''}
                   </span>
                 )}
                 {hasVenue && (
-                  <span className="flex items-center gap-1 text-slate-300">
-                    <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+                  <span className={`flex items-center gap-1 ${mutedText}`}>
+                    <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: colors.accent }} />
                     {ticket.venue}
                   </span>
                 )}
@@ -317,34 +469,31 @@ export const TicketRenderer: React.FC<TicketRendererProps> = ({
             )}
           </div>
 
-          {/* Recipient & Seating Box — ONLY DISPLAY IF PRESENT! */}
+          {/* Recipient & Seating Box — glassmorphism panel, ONLY IF PRESENT */}
           {(hasHolder || hasSeating) && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-black/60 border border-white/10 text-xs font-mono">
+            <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-2xl backdrop-blur-md border text-xs font-mono ${panelBg}`}>
               {hasHolder && (
                 <div className={hasSeating ? 'col-span-2' : 'col-span-4'}>
-                  <p className="text-[8px] sm:text-[9px] text-amber-400 uppercase tracking-wider font-bold">PASS HOLDER</p>
-                  <p className="font-extrabold text-white text-xs sm:text-sm truncate">{ticket.holderName}</p>
+                  <p className="text-[8px] sm:text-[9px] uppercase tracking-wider font-bold" style={{ color: colors.accent }}>PASS HOLDER</p>
+                  <p className={`font-extrabold text-xs sm:text-sm truncate ${panelText}`}>{ticket.holderName}</p>
                 </div>
               )}
-
               {ticket.section && (
                 <div>
-                  <p className="text-[8px] sm:text-[9px] text-amber-400 uppercase tracking-wider font-bold">SECTION</p>
-                  <p className="font-bold text-amber-300 text-xs">{ticket.section}</p>
+                  <p className="text-[8px] sm:text-[9px] uppercase tracking-wider font-bold" style={{ color: colors.accent }}>SECTION</p>
+                  <p className="font-bold text-xs" style={{ color: colors.accent }}>{ticket.section}</p>
                 </div>
               )}
-
               {(ticket.row || ticket.seatNumber) && (
                 <div>
-                  <p className="text-[8px] sm:text-[9px] text-amber-400 uppercase tracking-wider font-bold">ROW / SEAT</p>
-                  <p className="font-bold text-white text-xs">{ticket.row || '-'} / {ticket.seatNumber || '-'}</p>
+                  <p className="text-[8px] sm:text-[9px] uppercase tracking-wider font-bold" style={{ color: colors.accent }}>ROW / SEAT</p>
+                  <p className={`font-bold text-xs ${panelText}`}>{ticket.row || '-'} / {ticket.seatNumber || '-'}</p>
                 </div>
               )}
-
               {ticket.gateEntry && (
                 <div>
-                  <p className="text-[8px] sm:text-[9px] text-amber-400 uppercase tracking-wider font-bold">GATE</p>
-                  <p className="font-bold text-emerald-400 text-xs">{ticket.gateEntry}</p>
+                  <p className="text-[8px] sm:text-[9px] uppercase tracking-wider font-bold" style={{ color: colors.accent }}>GATE</p>
+                  <p className="font-bold text-xs text-emerald-400">{ticket.gateEntry}</p>
                 </div>
               )}
             </div>
@@ -352,26 +501,41 @@ export const TicketRenderer: React.FC<TicketRendererProps> = ({
 
           {/* Price & Serial */}
           <div className="flex items-center justify-between text-xs font-mono pt-0.5 sm:pt-1">
-            <span className="text-amber-400 font-bold text-xs sm:text-sm">
+            <span className="font-bold text-xs sm:text-sm" style={{ color: colors.accent }}>
               {hasPrice ? formatCurrency(ticket.price, ticket.currency) : 'ADMISSION TICKET'}
             </span>
-            <span className="text-slate-400 font-bold text-[10px] sm:text-[11px]">
+            <span className={`font-bold text-[10px] sm:text-[11px] ${mutedText}`}>
               NO : {ticket.ticketCode}
             </span>
           </div>
+
+          {/* Sponsor logo in footer position */}
+          {ticket.customLogoUrl && sponsorPos === 'footer' && (
+            <div className="flex justify-center pt-1">
+              <img src={ticket.customLogoUrl} alt="Sponsor" className="h-6 w-auto max-w-[110px] object-contain opacity-80" />
+            </div>
+          )}
         </div>
 
-        {/* Stub Section with QR Code */}
+        {/* Stub Section with QR Code + hidden watermark behind it */}
         {showStub && (
-          <div className="p-3.5 sm:p-5 w-full sm:w-48 bg-black/40 border-t sm:border-t-0 sm:border-l border-dashed border-white/20 flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-3 sm:space-y-3 shrink-0 relative">
-            <div className="p-2 bg-white rounded-xl shadow-lg border border-amber-300 shrink-0">
-              <QRCodeSVG value={ticket.qrCodeData || ticket.ticketCode} size={90} level="H" className="sm:w-[110px] sm:h-[110px]" />
+          <div
+            className={`relative p-3.5 sm:p-5 w-full ${isPortrait ? '' : 'sm:w-48'} border-t ${isPortrait ? '' : 'sm:border-t-0 sm:border-l'} border-dashed flex flex-row ${isPortrait ? '' : 'sm:flex-col'} items-center justify-between ${isPortrait ? '' : 'sm:justify-center'} gap-3 sm:space-y-3 shrink-0 overflow-hidden`}
+            style={{ borderColor: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.2)', background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(0,0,0,0.35)' }}
+          >
+            {watermark !== 'none' && <SecurityWatermarkPattern color={colors.accent} />}
+            <div className="relative shrink-0">
+              <QrFrame size={isPortrait ? 110 : 90} />
             </div>
 
-            <div className="text-right sm:text-center font-mono space-y-0.5">
-              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-300">SCAN FOR ENTRY</p>
-              <p className="text-xs sm:text-[11px] font-extrabold text-white">{ticket.ticketCode}</p>
+            <div className="relative text-right sm:text-center font-mono space-y-0.5">
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider" style={{ color: colors.accent }}>SCAN FOR ENTRY</p>
+              <p className={`text-xs sm:text-[11px] font-extrabold ${panelText}`}>{ticket.ticketCode}</p>
             </div>
+
+            {ticket.customLogoUrl && sponsorPos === 'bottom_stub' && (
+              <img src={ticket.customLogoUrl} alt="Sponsor" className="hidden sm:block h-6 w-auto max-w-[90px] object-contain opacity-80 relative" />
+            )}
           </div>
         )}
       </div>

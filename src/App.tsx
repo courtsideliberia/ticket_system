@@ -10,6 +10,7 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_USERS,
 } from './lib/mockData';
+import { CATEGORY_TO_GATE_TIER, GateTier } from './lib/ticketTemplateMap';
 
 // Component Workspaces
 import { NavigationSidebar, TabType } from './components/NavigationSidebar';
@@ -19,6 +20,7 @@ import { SideDetailPanel } from './components/SideDetailPanel';
 import { DashboardWorkspace } from './components/DashboardWorkspace';
 import { EventsWorkspace } from './components/EventsWorkspace';
 import { TicketsWorkspace } from './components/TicketsWorkspace';
+import { TemplateManager } from './components/TemplateManager';
 import { OrdersWorkspace } from './components/OrdersWorkspace';
 import { CustomersWorkspace } from './components/CustomersWorkspace';
 import { UsersWorkspace } from './components/UsersWorkspace';
@@ -47,6 +49,14 @@ export const App: React.FC = () => {
   // that load.
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Tracks when this device last pushed a local change (delete, edit, create,
+  // scan, etc.) to the server. The periodic poll / focus-sync below must NOT
+  // overwrite local state with a server snapshot that predates this write —
+  // otherwise a delete (or any edit) can be silently "undone" by a poll that
+  // lands in the ~1s gap between the local change and the server finishing
+  // persisting it. See fetchStateFromServer().
+  const lastLocalWriteRef = React.useRef<number>(0);
+  const LOCAL_WRITE_GUARD_MS = 4000;
 
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     try {
@@ -142,6 +152,15 @@ export const App: React.FC = () => {
       if (!res.ok) return false;
       const data = await res.json();
       if (data.success && data.state) {
+        // A local change (delete/edit/create) was just made and its save to
+        // the server may still be in flight. Applying this snapshot now
+        // could be a stale pre-write copy and would silently resurrect
+        // whatever was just deleted/edited. Skip this poll cycle — the next
+        // one will pick up the now-confirmed server state.
+        if (Date.now() - lastLocalWriteRef.current < LOCAL_WRITE_GUARD_MS) {
+          return true;
+        }
+
         const s = data.state;
         const savedLogo = localStorage.getItem('courtside_custom_logo_url') || undefined;
 
@@ -226,6 +245,7 @@ export const App: React.FC = () => {
 
   // Helper to force immediate persistence to server (bypassing debounce)
   const saveStateImmediately = async (customPayload?: Partial<AppState>) => {
+    lastLocalWriteRef.current = Date.now();
     const payload = {
       tickets, events, orders, customers, scanners,
       scannerLogs, activities, notifications, users, customLogoUrl,
@@ -237,6 +257,10 @@ export const App: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      // Refresh the guard timestamp once the write is confirmed so the
+      // ~4s protection window is measured from actual completion, not just
+      // from when the request was fired (covers slower connections too).
+      lastLocalWriteRef.current = Date.now();
     } catch {
       // Offline mode or server restarting
     }
@@ -246,6 +270,10 @@ export const App: React.FC = () => {
   const saveTimerRef = React.useRef<any>(null);
   useEffect(() => {
     if (isLoading) return;
+    // Mark the guard immediately (not just once the debounced PUT actually
+    // fires) so a poll landing in this window is skipped rather than
+    // clobbering the change that's about to be saved.
+    lastLocalWriteRef.current = Date.now();
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       saveStateImmediately();
@@ -791,40 +819,27 @@ export const App: React.FC = () => {
       };
     }
 
-    // Gate Access Validation Logic (Strict Gate Category Matching)
-    // Note: All Access passes can enter at any gate!
-    const normalizedGate = gateName.toLowerCase();
-    const cat = (ticket.category || 'regular').toLowerCase();
+    // Gate Access Validation — deterministic, not string-guessing.
+    // Every category maps to exactly one tier (or 'all_access', which is
+    // valid everywhere). The gate name selected in the Scanner UI is one of
+    // exactly three fixed values ('Regular Gate' | 'VIP Gate' | 'VVIP Gate'),
+    // so we resolve it to the same tier space and do a strict equality check
+    // — no substring guessing, so it can't misfire on an unexpected label.
+    const scannerTier: GateTier = gateName.toLowerCase().includes('vvip')
+      ? 'vvip'
+      : gateName.toLowerCase().includes('vip')
+        ? 'vip'
+        : 'regular';
+    const ticketTier = CATEGORY_TO_GATE_TIER[ticket.category] ?? 'regular';
 
     let isGateAllowed = true;
     let gateReason = '';
 
-    if (cat === 'all_access') {
-      isGateAllowed = true;
-    } else if (normalizedGate.includes('vvip')) {
-      // VVIP Gate accepts ONLY VVIP tier passes (vvip, courtside_box, courtside_floor)
-      const isVVIPPass = cat === 'vvip' || cat === 'courtside_box' || cat === 'courtside_floor';
-      if (!isVVIPPass) {
-        isGateAllowed = false;
-        const formattedCat = cat === 'regular' ? 'REGULAR' : cat.replace('_', ' ').toUpperCase();
-        gateReason = `WRONG GATE • This scanner is set to VVIP Gate. ${formattedCat} pass cannot scan here.`;
-      }
-    } else if (normalizedGate.includes('vip')) {
-      // VIP Gate accepts ONLY VIP tier passes (vip, courtside_vip, player_staff, media)
-      const isVIPPass = cat === 'vip' || cat === 'courtside_vip' || cat === 'player_staff' || cat === 'media';
-      if (!isVIPPass) {
-        isGateAllowed = false;
-        const formattedCat = cat === 'regular' ? 'REGULAR' : cat.replace('_', ' ').toUpperCase();
-        gateReason = `WRONG GATE • This scanner is set to VIP Gate. ${formattedCat} pass cannot scan here. (Please proceed to Regular Gate)`;
-      }
-    } else {
-      // Regular Gate accepts ONLY Regular & General Access passes
-      const isRegularPass = cat === 'regular' || cat === 'general_access';
-      if (!isRegularPass) {
-        isGateAllowed = false;
-        const formattedCat = cat.replace('_', ' ').toUpperCase();
-        gateReason = `WRONG GATE • This scanner is set to Regular Gate. ${formattedCat} pass cannot scan here. (Please proceed to VIP/VVIP Gate)`;
-      }
+    if (ticketTier !== 'all_access' && ticketTier !== scannerTier) {
+      isGateAllowed = false;
+      const formattedCat = ticket.category === 'regular' ? 'REGULAR' : ticket.category.replace(/_/g, ' ').toUpperCase();
+      const properGate = ticketTier === 'vvip' ? 'VVIP Gate' : ticketTier === 'vip' ? 'VIP Gate' : 'Regular Gate';
+      gateReason = `WRONG GATE • This scanner is set to ${gateName}. ${formattedCat} pass is not valid here — please proceed to ${properGate}.`;
     }
 
     if (!isGateAllowed) {
@@ -976,6 +991,8 @@ export const App: React.FC = () => {
               onOpenShareModal={(ticket) => setSharingTicket(ticket)}
             />
           )}
+
+          {activeTab === 'templates' && <TemplateManager />}
 
           {activeTab === 'orders' && (
             <OrdersWorkspace

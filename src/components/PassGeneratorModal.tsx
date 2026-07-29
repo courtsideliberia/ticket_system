@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
+import { downloadPdf, getPhysicalSizeIn } from '../lib/exportTicket';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { PassCategory, PassTicket, TicketCanvasThemeId, EventRecord, PassTypeKind } from '../types';
@@ -24,7 +25,8 @@ import {
   FileText,
   ImageDown,
   PackageCheck,
-  Loader2
+  Loader2,
+  FileDown
 } from 'lucide-react';
 
 interface PassGeneratorModalProps {
@@ -54,8 +56,6 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
   onGenerate,
   events = [],
 }) => {
-  if (!isOpen) return null;
-
   // Selected Pass Type Mode (Ticket vs Staff Pass vs QR Code)
   const [passType, setPassType] = useState<PassTypeKind>('ticket');
 
@@ -118,7 +118,10 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
   // Real export state (PNG capture refs, per-card/zip loading indicators)
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
   const [zipping, setZipping] = useState(false);
+
+  if (!isOpen) return null;
 
   // Pick created event handler
   const handleEventSelect = (eventId: string) => {
@@ -213,6 +216,22 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
       alert('Could not export this pass as an image. Please try again.');
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadOnePdf = async (t: PassTicket) => {
+    const node = cardRefs.current[t.id];
+    if (!node) return;
+    setDownloadingPdfId(t.id);
+    try {
+      const orientation = t.customization?.orientation || (t.passType === 'staff_badge' ? 'portrait' : 'landscape');
+      const size = getPhysicalSizeIn(t.passType || 'ticket', orientation);
+      await downloadPdf(node, `Courtside_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}_300DPI.pdf`, { ...size, backgroundColor: '#0f172a' });
+    } catch (err) {
+      console.error('PDF export failed', err);
+      alert('Could not export this pass as a PDF. Please try again.');
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -454,14 +473,24 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
                     <span className="font-mono text-slate-300">Pass #{idx + 1} of {generatedSuccess.length}</span>
-                    <button
-                      onClick={() => handleDownloadOne(t)}
-                      disabled={downloadingId === t.id}
-                      className="text-emerald-400 hover:underline flex items-center gap-1 disabled:opacity-60"
-                    >
-                      {downloadingId === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImageDown className="w-3 h-3" />}
-                      {downloadingId === t.id ? 'Exporting…' : 'Download PNG'}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleDownloadOne(t)}
+                        disabled={downloadingId === t.id}
+                        className="text-emerald-400 hover:underline flex items-center gap-1 disabled:opacity-60"
+                      >
+                        {downloadingId === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImageDown className="w-3 h-3" />}
+                        {downloadingId === t.id ? 'Exporting…' : 'PNG'}
+                      </button>
+                      <button
+                        onClick={() => handleDownloadOnePdf(t)}
+                        disabled={downloadingPdfId === t.id}
+                        className="text-blue-400 hover:underline flex items-center gap-1 disabled:opacity-60"
+                      >
+                        {downloadingPdfId === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+                        {downloadingPdfId === t.id ? 'Exporting…' : 'PDF (300 DPI)'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

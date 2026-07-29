@@ -68,6 +68,7 @@ export type BadgeStyleOption = 'pill_stars' | 'shield_crest' | 'metallic_ribbon'
 export type QRFrameStyleOption = 'security_glow' | 'gold_metallic' | 'corner_crosshairs' | 'glass_card' | 'minimal';
 export type CornerStyleOption = 'notch_cutouts' | 'rounded_lg' | 'sharp_square' | 'pill_edges';
 export type TicketOrientation = 'portrait' | 'landscape';
+export type ThemeMode = 'dark' | 'light';
 export type SecurityWatermarkStyle = 'shield_logo' | 'starburst_hologram' | 'official_seal' | 'none';
 export type SponsorLogoPlacement = 'top_header' | 'bottom_stub' | 'footer' | 'none';
 
@@ -84,6 +85,7 @@ export interface TemplateCustomization {
   cornerStyle?: CornerStyleOption;
   securityWatermark?: SecurityWatermarkStyle;
   sponsorLogoPosition?: SponsorLogoPlacement;
+  mode?: ThemeMode;
 }
 
 export type PassStatus = 'valid' | 'used' | 'revoked' | 'expired' | 'blocked' | 'refunded' | 'transferred';
@@ -92,6 +94,7 @@ export type AppNavView =
   | 'dashboard'
   | 'events'
   | 'tickets'
+  | 'templates'
   | 'orders'
   | 'customers'
   | 'users'
@@ -116,6 +119,7 @@ export interface PassTicket {
   holderRole?: string;
   category: PassCategory;
   themeId?: TicketCanvasThemeId;
+  customization?: TemplateCustomization;
   eventName: string;
   eventDate: string;
   eventTime?: string;

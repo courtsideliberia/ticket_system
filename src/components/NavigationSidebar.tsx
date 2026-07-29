@@ -23,6 +23,7 @@ import {
   LogOut,
   UserCheck,
   Smartphone,
+  Palette,
 } from 'lucide-react';
 import { AppNavView, UserAccount } from '../types';
 import { usePwaInstall } from '../lib/usePwaInstall';
@@ -122,6 +123,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
         { id: 'events', label: 'Create Event / Events', icon: Calendar, badge: 'Live' },
         { id: 'scanners', label: 'Gate Scanner', icon: QrCode, badge: `${scannerCount} Online` },
         { id: 'tickets', label: 'Passes & Tickets', icon: Ticket, badge: ticketCount },
+        { id: 'templates', label: 'Template Manager', icon: Palette, badge: 'New' },
         { id: 'orders', label: 'Orders & Sales', icon: ShoppingBag, badge: orderCount },
         { id: 'customers', label: 'Guests & Holders', icon: Users, badge: customerCount },
       ],

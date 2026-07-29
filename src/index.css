@@ -27,3 +27,31 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
+
+/* Template Manager: subtle animated sheen + glow on the live preview card,
+   giving the "animated preview" a premium showroom feel without being
+   distracting or interfering with PNG/PDF capture (animation pauses are not
+   needed since html-to-image captures a static frame). */
+.template-preview-animated {
+  position: relative;
+  animation: template-float 4.5s ease-in-out infinite;
+}
+.template-preview-animated::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.16) 50%, transparent 80%);
+  background-size: 250% 250%;
+  animation: template-sheen 3.2s ease-in-out infinite;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+@keyframes template-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes template-sheen {
+  0% { background-position: -150% -150%; }
+  100% { background-position: 150% 150%; }
+}
