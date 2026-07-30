@@ -11,7 +11,7 @@ import {
   isSheetsDbActive,
   AppState
 } from './sheetsDb';
-import { PassTicket, EventRecord, ScannerLog } from './src/types';
+import { PassTicket, EventRecord, ScannerLog, UserAccount } from './src/types';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Local JSON-file fallback (used automatically whenever the Google Sheets
@@ -183,52 +183,141 @@ export async function createApp() {
 
   app.put('/api/state', (req, res) => {
     try {
-      const incoming = req.body as Partial<AppState>;
+      const incoming = req.body as Partial<AppState> & {
+        isReset?: boolean;
+        deletedTicketId?: string;
+        deletedEventId?: string;
+        deletedUserId?: string;
+      };
       const current = readState();
 
-      // If incoming contains tickets array, use it directly (preserving scan metadata if needed)
-      let finalTickets: PassTicket[] = current.tickets || [];
+      if (incoming.isReset) {
+        const fresh = defaultSeedState();
+        writeState(fresh);
+        return res.json({ success: true, count: fresh.tickets.length, message: 'Database reset to default' });
+      }
+
+      // Handle explicit deletions first
+      if (incoming.deletedTicketId) {
+        current.tickets = (current.tickets || []).filter((t) => t.id !== incoming.deletedTicketId);
+      }
+      if (incoming.deletedEventId) {
+        current.events = (current.events || []).filter((e) => e.id !== incoming.deletedEventId);
+      }
+      if (incoming.deletedUserId) {
+        current.users = (current.users || []).filter((u) => u.id !== incoming.deletedUserId);
+      }
+
+      // Smart union & merge algorithm
+      // 1. Tickets: Union by ID/Code, preserving 'used' scan status from whichever device scanned first
+      const ticketMap = new Map<string, PassTicket>();
+      (current.tickets || []).forEach((t) => {
+        if (t && (t.id || t.ticketCode)) {
+          ticketMap.set(t.id || t.ticketCode, { ...t });
+        }
+      });
+
       if (Array.isArray(incoming.tickets)) {
-        const currentScanMap = new Map<string, { status: PassTicket['status']; scannedAt?: string; scannedBy?: string; gateEntry?: string }>();
-        (current.tickets || []).forEach((t) => {
-          if (t.status === 'used' || (t.status as string) === 'already_used' || t.scannedAt) {
-            currentScanMap.set(t.id || t.ticketCode, {
-              status: t.status,
-              scannedAt: t.scannedAt,
-              scannedBy: t.scannedBy,
-              gateEntry: t.gateEntry,
+        incoming.tickets.forEach((inc) => {
+          if (!inc || (!inc.id && !inc.ticketCode)) return;
+          const key = inc.id || inc.ticketCode;
+          const existing = ticketMap.get(key);
+
+          if (!existing) {
+            ticketMap.set(key, { ...inc });
+          } else {
+            const isUsed =
+              existing.status === 'used' ||
+              inc.status === 'used' ||
+              (existing.status as string) === 'already_used' ||
+              (inc.status as string) === 'already_used';
+
+            ticketMap.set(key, {
+              ...existing,
+              ...inc,
+              status: isUsed ? 'used' : inc.status || existing.status,
+              scannedAt: inc.scannedAt || existing.scannedAt,
+              scannedBy: inc.scannedBy || existing.scannedBy,
+              gateEntry: inc.gateEntry || existing.gateEntry,
             });
           }
         });
+      }
 
-        finalTickets = incoming.tickets.map((t) => {
-          const key = t.id || t.ticketCode;
-          const scanInfo = currentScanMap.get(key);
-          if (scanInfo && t.status === 'valid') {
-            return {
-              ...t,
-              status: scanInfo.status,
-              scannedAt: scanInfo.scannedAt || t.scannedAt,
-              scannedBy: scanInfo.scannedBy || t.scannedBy,
-              gateEntry: scanInfo.gateEntry || t.gateEntry,
-            };
+      // 2. Events: Union by ID
+      const eventMap = new Map<string, EventRecord>();
+      (current.events || []).forEach((e) => {
+        if (e && e.id) eventMap.set(e.id, { ...e });
+      });
+      if (Array.isArray(incoming.events)) {
+        incoming.events.forEach((inc) => {
+          if (!inc || !inc.id) return;
+          const existing = eventMap.get(inc.id);
+          if (!existing) {
+            eventMap.set(inc.id, { ...inc });
+          } else {
+            eventMap.set(inc.id, {
+              ...existing,
+              ...inc,
+              ticketsSold: Math.max(existing.ticketsSold || 0, inc.ticketsSold || 0),
+              totalRevenue: Math.max(existing.totalRevenue || 0, inc.totalRevenue || 0),
+              attendanceCount: Math.max(existing.attendanceCount || 0, inc.attendanceCount || 0),
+            });
           }
-          return t;
         });
       }
 
-      const merged: AppState = {
-        users: Array.isArray(incoming.users) ? incoming.users : current.users ?? [],
-        events: Array.isArray(incoming.events) ? incoming.events : current.events ?? [],
-        tickets: finalTickets,
-        orders: Array.isArray(incoming.orders) ? incoming.orders : current.orders ?? [],
-        customers: Array.isArray(incoming.customers) ? incoming.customers : current.customers ?? [],
-        scanners: Array.isArray(incoming.scanners) ? incoming.scanners : current.scanners ?? [],
-        scannerLogs: Array.isArray(incoming.scannerLogs) ? incoming.scannerLogs : current.scannerLogs ?? [],
-        activities: Array.isArray(incoming.activities) ? incoming.activities : current.activities ?? [],
-        notifications: Array.isArray(incoming.notifications) ? incoming.notifications : current.notifications ?? [],
-        customLogoUrl: incoming.customLogoUrl !== undefined ? incoming.customLogoUrl : current.customLogoUrl
+      // 3. Scanner Logs: Union by log ID, newest first
+      const logMap = new Map<string, ScannerLog>();
+      (current.scannerLogs || []).forEach((l) => {
+        if (l && l.id) logMap.set(l.id, { ...l });
+      });
+      if (Array.isArray(incoming.scannerLogs)) {
+        incoming.scannerLogs.forEach((l) => {
+          if (l && l.id) logMap.set(l.id, { ...l });
+        });
+      }
+
+      // 4. Users: Union by ID
+      const userMap = new Map<string, UserAccount>();
+      (current.users || []).forEach((u) => {
+        if (u && u.id) userMap.set(u.id, { ...u });
+      });
+      if (Array.isArray(incoming.users)) {
+        incoming.users.forEach((u) => {
+          if (u && u.id) userMap.set(u.id, { ...u });
+        });
+      }
+
+      // 5. Array union helper
+      const unionArray = <T extends { id?: string }>(arr1: T[] = [], arr2: T[] = []): T[] => {
+        const map = new Map<string, T>();
+        arr1.forEach((item, idx) => {
+          if (!item) return;
+          const k = item.id || `item-1-${idx}`;
+          map.set(k, { ...item });
+        });
+        arr2.forEach((item, idx) => {
+          if (!item) return;
+          const k = item.id || `item-2-${idx}`;
+          map.set(k, { ...item });
+        });
+        return Array.from(map.values());
       };
+
+      const merged: AppState = {
+        users: Array.from(userMap.values()),
+        events: Array.from(eventMap.values()),
+        tickets: Array.from(ticketMap.values()),
+        orders: unionArray(current.orders, incoming.orders),
+        customers: unionArray(current.customers, incoming.customers),
+        scanners: unionArray(current.scanners, incoming.scanners),
+        scannerLogs: Array.from(logMap.values()).sort((a, b) => (b.id || '').localeCompare(a.id || '')),
+        activities: unionArray(current.activities, incoming.activities),
+        notifications: unionArray(current.notifications, incoming.notifications),
+        customLogoUrl: incoming.customLogoUrl !== undefined ? incoming.customLogoUrl : current.customLogoUrl,
+      };
+
       writeState(merged);
       res.json({ success: true, count: merged.tickets.length });
     } catch (err) {

@@ -23,11 +23,8 @@ import {
   LogOut,
   UserCheck,
   Smartphone,
-  Palette,
 } from 'lucide-react';
 import { AppNavView, UserAccount } from '../types';
-import { usePwaInstall } from '../lib/usePwaInstall';
-import { PwaIosModal } from './PwaIosModal';
 
 export type TabType = AppNavView;
 
@@ -84,7 +81,6 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
   onOpenSuperAdminModal,
 }) => {
   const selectedView = activeTab || currentView || 'dashboard';
-  const { isInstalled, triggerInstall, showIosInstructions, closeIosInstructions } = usePwaInstall();
 
   const handleSelect = (view: AppNavView) => {
     if (onSelectTab) onSelectTab(view);
@@ -123,7 +119,6 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
         { id: 'events', label: 'Create Event / Events', icon: Calendar, badge: 'Live' },
         { id: 'scanners', label: 'Gate Scanner', icon: QrCode, badge: `${scannerCount} Online` },
         { id: 'tickets', label: 'Passes & Tickets', icon: Ticket, badge: ticketCount },
-        { id: 'templates', label: 'Template Manager', icon: Palette, badge: 'New' },
         { id: 'orders', label: 'Orders & Sales', icon: ShoppingBag, badge: orderCount },
         { id: 'customers', label: 'Guests & Holders', icon: Users, badge: customerCount },
       ],
@@ -340,18 +335,6 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
                 <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isSuperAdmin ? 'text-emerald-400' : 'text-blue-400'}`} />
               </div>
 
-              {!isInstalled && (
-                <button
-                  type="button"
-                  onClick={triggerInstall}
-                  className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs transition-all flex items-center justify-center gap-2 uppercase tracking-wider shadow-lg shadow-blue-500/20"
-                  title="Install Courtside Pass App on device"
-                >
-                  <Smartphone className="w-4 h-4" />
-                  <span>📱 Install App (PWA)</span>
-                </button>
-              )}
-
               {onLogout && (
                 <button
                   type="button"
@@ -391,7 +374,6 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
           )}
         </div>
       </aside>
-      <PwaIosModal isOpen={showIosInstructions} onClose={closeIosInstructions} />
     </>
   );
 };

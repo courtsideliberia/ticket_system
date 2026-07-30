@@ -10,7 +10,6 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_USERS,
 } from './lib/mockData';
-import { CATEGORY_TO_GATE_TIER, GateTier } from './lib/ticketTemplateMap';
 
 // Component Workspaces
 import { NavigationSidebar, TabType } from './components/NavigationSidebar';
@@ -20,7 +19,6 @@ import { SideDetailPanel } from './components/SideDetailPanel';
 import { DashboardWorkspace } from './components/DashboardWorkspace';
 import { EventsWorkspace } from './components/EventsWorkspace';
 import { TicketsWorkspace } from './components/TicketsWorkspace';
-import { TemplateManager } from './components/TemplateManager';
 import { OrdersWorkspace } from './components/OrdersWorkspace';
 import { CustomersWorkspace } from './components/CustomersWorkspace';
 import { UsersWorkspace } from './components/UsersWorkspace';
@@ -49,14 +47,6 @@ export const App: React.FC = () => {
   // that load.
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  // Tracks when this device last pushed a local change (delete, edit, create,
-  // scan, etc.) to the server. The periodic poll / focus-sync below must NOT
-  // overwrite local state with a server snapshot that predates this write —
-  // otherwise a delete (or any edit) can be silently "undone" by a poll that
-  // lands in the ~1s gap between the local change and the server finishing
-  // persisting it. See fetchStateFromServer().
-  const lastLocalWriteRef = React.useRef<number>(0);
-  const LOCAL_WRITE_GUARD_MS = 4000;
 
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     try {
@@ -146,23 +136,18 @@ export const App: React.FC = () => {
   };
 
   // Helper to sync latest database state from server
+  const isSyncingFromServerRef = React.useRef(false);
+
   const fetchStateFromServer = async () => {
     try {
       const res = await fetch('/api/state');
       if (!res.ok) return false;
       const data = await res.json();
       if (data.success && data.state) {
-        // A local change (delete/edit/create) was just made and its save to
-        // the server may still be in flight. Applying this snapshot now
-        // could be a stale pre-write copy and would silently resurrect
-        // whatever was just deleted/edited. Skip this poll cycle — the next
-        // one will pick up the now-confirmed server state.
-        if (Date.now() - lastLocalWriteRef.current < LOCAL_WRITE_GUARD_MS) {
-          return true;
-        }
-
         const s = data.state;
         const savedLogo = localStorage.getItem('courtside_custom_logo_url') || undefined;
+
+        isSyncingFromServerRef.current = true;
 
         setTickets((prevLocal) => {
           const serverTickets: PassTicket[] = s.tickets || [];
@@ -172,7 +157,6 @@ export const App: React.FC = () => {
               localScanMap.set(t.id || t.ticketCode, t);
             }
           });
-          // Update scan status for tickets that exist on server
           return serverTickets.map((st) => {
             const key = st.id || st.ticketCode;
             const localScanned = localScanMap.get(key);
@@ -196,12 +180,24 @@ export const App: React.FC = () => {
         setScannerLogs(s.scannerLogs || []);
         setActivities(s.activities || INITIAL_ACTIVITIES);
         setNotifications(s.notifications || []);
+        setUsers((prevLocalUsers) => {
+          const serverUsers: UserAccount[] = s.users || INITIAL_USERS;
+          const userMap = new Map<string, UserAccount>();
+          serverUsers.forEach((u) => { if (u && u.id) userMap.set(u.id, u); });
+          prevLocalUsers.forEach((u) => { if (u && u.id && !userMap.has(u.id)) userMap.set(u.id, u); });
+          return Array.from(userMap.values());
+        });
         const logoToUse = s.customLogoUrl || savedLogo;
         setCustomLogoUrlState(logoToUse);
         if (logoToUse) {
           try { localStorage.setItem('courtside_custom_logo_url', logoToUse); } catch {}
         }
         setUsers(s.users || INITIAL_USERS);
+
+        setTimeout(() => {
+          isSyncingFromServerRef.current = false;
+        }, 300);
+
         return true;
       }
     } catch {
@@ -210,7 +206,7 @@ export const App: React.FC = () => {
     return false;
   };
 
-  // ── Load everything from server on mount, setup polling, and sync on tab focus ──
+  // ── Load everything from server on mount, setup fast 3s polling, and sync on tab focus ──
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -218,10 +214,10 @@ export const App: React.FC = () => {
       if (!cancelled) setIsLoading(false);
     })();
 
-    // Poll every 8 seconds so PWA scanners pick up passes generated on other devices
+    // Fast 3-second poll so scanners and admin phones receive passes & scans created on other devices instantly
     const interval = setInterval(() => {
       fetchStateFromServer();
-    }, 8000);
+    }, 3000);
 
     // Sync state whenever phone/computer regains focus or tab becomes active
     const handleFocus = () => {
@@ -244,8 +240,7 @@ export const App: React.FC = () => {
   }, []);
 
   // Helper to force immediate persistence to server (bypassing debounce)
-  const saveStateImmediately = async (customPayload?: Partial<AppState>) => {
-    lastLocalWriteRef.current = Date.now();
+  const saveStateImmediately = async (customPayload?: Partial<AppState> & { isReset?: boolean; deletedTicketId?: string; deletedEventId?: string; deletedUserId?: string }) => {
     const payload = {
       tickets, events, orders, customers, scanners,
       scannerLogs, activities, notifications, users, customLogoUrl,
@@ -257,23 +252,15 @@ export const App: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      // Refresh the guard timestamp once the write is confirmed so the
-      // ~4s protection window is measured from actual completion, not just
-      // from when the request was fired (covers slower connections too).
-      lastLocalWriteRef.current = Date.now();
     } catch {
       // Offline mode or server restarting
     }
   };
 
-  // ── Auto-save everything back to the server whenever state changes ──
+  // ── Auto-save state changes back to the server ──
   const saveTimerRef = React.useRef<any>(null);
   useEffect(() => {
-    if (isLoading) return;
-    // Mark the guard immediately (not just once the debounced PUT actually
-    // fires) so a poll landing in this window is skipped rather than
-    // clobbering the change that's about to be saved.
-    lastLocalWriteRef.current = Date.now();
+    if (isLoading || isSyncingFromServerRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       saveStateImmediately();
@@ -338,7 +325,8 @@ export const App: React.FC = () => {
   };
 
   const handleAddUser = (newUser: UserAccount) => {
-    setUsers((prev) => [newUser, ...prev]);
+    const updatedUsers = [newUser, ...users];
+    setUsers(updatedUsers);
     const newNotif: NotificationItem = {
       id: `notif-${Date.now()}`,
       title: `🔑 User Account Created: ${newUser.name}`,
@@ -348,13 +336,16 @@ export const App: React.FC = () => {
       isRead: false,
     };
     setNotifications((prev) => [newNotif, ...prev]);
+    saveStateImmediately({ users: updatedUsers });
   };
 
   const handleUpdateUser = (updatedUser: UserAccount) => {
-    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    const updatedUsers = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
+    setUsers(updatedUsers);
     if (currentUser?.id === updatedUser.id) {
       setCurrentUser(updatedUser);
     }
+    saveStateImmediately({ users: updatedUsers });
   };
 
   const handleDeleteUser = (userId: string) => {
@@ -382,41 +373,67 @@ export const App: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
   const [selectedScanner, setSelectedScanner] = useState<ScannerDevice | null>(null);
 
-  // System-wide record access for authenticated accounts
+  // System-wide record access with user data isolation
   const visibleEvents = useMemo(() => {
     if (!currentUser) return [];
-    return events;
-  }, [events, currentUser]);
+    if (isSuperAdmin) return events;
+    return events.filter(
+      (e) =>
+        e.createdByUserId === currentUser.id ||
+        (currentUser.assignedEventIds && currentUser.assignedEventIds.includes(e.id))
+    );
+  }, [events, currentUser, isSuperAdmin]);
 
   const visibleTickets = useMemo(() => {
     if (!currentUser) return [];
-    return tickets;
-  }, [tickets, currentUser]);
+    if (isSuperAdmin) return tickets;
+    const ownedEventNames = new Set(visibleEvents.map((e) => e.name));
+    return tickets.filter(
+      (t) =>
+        t.createdByUserId === currentUser.id ||
+        ownedEventNames.has(t.eventName)
+    );
+  }, [tickets, visibleEvents, currentUser, isSuperAdmin]);
 
   const visibleOrders = useMemo(() => {
     if (!currentUser) return [];
     if (isSuperAdmin) return orders;
+    const ownedEventNames = new Set(visibleEvents.map((e) => e.name));
     const userTicketOrderIds = new Set(visibleTickets.map((t) => t.orderId).filter(Boolean));
     const userTicketEmails = new Set(visibleTickets.map((t) => t.holderEmail).filter(Boolean));
     return orders.filter(
-      (o) => userTicketOrderIds.has(o.id) || userTicketEmails.has(o.customerEmail)
+      (o) =>
+        (o as any).createdByUserId === currentUser.id ||
+        ownedEventNames.has(o.eventName) ||
+        userTicketOrderIds.has(o.id) ||
+        (o.customerEmail && userTicketEmails.has(o.customerEmail))
     );
-  }, [orders, visibleTickets, currentUser, isSuperAdmin]);
+  }, [orders, visibleEvents, visibleTickets, currentUser, isSuperAdmin]);
 
   const visibleCustomers = useMemo(() => {
     if (!currentUser) return [];
     if (isSuperAdmin) return customers;
     const userTicketEmails = new Set(visibleTickets.map((t) => t.holderEmail).filter(Boolean));
-    return customers.filter((c) => userTicketEmails.has(c.email));
-  }, [customers, visibleTickets, currentUser, isSuperAdmin]);
+    const userOrderEmails = new Set(visibleOrders.map((o) => o.customerEmail).filter(Boolean));
+    return customers.filter(
+      (c) =>
+        (c as any).createdByUserId === currentUser.id ||
+        userTicketEmails.has(c.email) ||
+        userOrderEmails.has(c.email)
+    );
+  }, [customers, visibleTickets, visibleOrders, currentUser, isSuperAdmin]);
 
   const visibleActivities = useMemo(() => {
     if (!currentUser) return [];
     if (isSuperAdmin) return activities;
+    const ownedEventNames = new Set(visibleEvents.map((e) => e.name));
     return activities.filter(
-      (a) => a.user === currentUser.name || a.user === 'Owner / Super Admin'
+      (a) =>
+        (a as any).createdByUserId === currentUser.id ||
+        a.user === currentUser.name ||
+        ownedEventNames.has(a.target)
     );
-  }, [activities, currentUser, isSuperAdmin]);
+  }, [activities, visibleEvents, currentUser, isSuperAdmin]);
 
   // Sync state to localStorage
   useEffect(() => {
@@ -661,11 +678,23 @@ export const App: React.FC = () => {
       setScannerLogs([]);
     }
 
-    saveStateImmediately({
+    let customSavePayload: any = {
       tickets: updatedTickets,
       events: updatedEvents,
       users: updatedUsers,
-    });
+    };
+
+    if (deleteTarget.type === 'ticket') {
+      customSavePayload.deletedTicketId = deleteTarget.id;
+    } else if (deleteTarget.type === 'event') {
+      customSavePayload.deletedEventId = deleteTarget.id;
+    } else if (deleteTarget.type === 'user') {
+      customSavePayload.deletedUserId = deleteTarget.id;
+    } else if (deleteTarget.type === 'reset') {
+      customSavePayload.isReset = true;
+    }
+
+    saveStateImmediately(customSavePayload);
 
     setIsDeleting(false);
     setDeleteTarget(null);
@@ -819,27 +848,40 @@ export const App: React.FC = () => {
       };
     }
 
-    // Gate Access Validation — deterministic, not string-guessing.
-    // Every category maps to exactly one tier (or 'all_access', which is
-    // valid everywhere). The gate name selected in the Scanner UI is one of
-    // exactly three fixed values ('Regular Gate' | 'VIP Gate' | 'VVIP Gate'),
-    // so we resolve it to the same tier space and do a strict equality check
-    // — no substring guessing, so it can't misfire on an unexpected label.
-    const scannerTier: GateTier = gateName.toLowerCase().includes('vvip')
-      ? 'vvip'
-      : gateName.toLowerCase().includes('vip')
-        ? 'vip'
-        : 'regular';
-    const ticketTier = CATEGORY_TO_GATE_TIER[ticket.category] ?? 'regular';
+    // Gate Access Validation Logic (Strict Gate Category Matching)
+    // Note: All Access passes can enter at any gate!
+    const normalizedGate = gateName.toLowerCase();
+    const cat = (ticket.category || 'regular').toLowerCase();
 
     let isGateAllowed = true;
     let gateReason = '';
 
-    if (ticketTier !== 'all_access' && ticketTier !== scannerTier) {
-      isGateAllowed = false;
-      const formattedCat = ticket.category === 'regular' ? 'REGULAR' : ticket.category.replace(/_/g, ' ').toUpperCase();
-      const properGate = ticketTier === 'vvip' ? 'VVIP Gate' : ticketTier === 'vip' ? 'VIP Gate' : 'Regular Gate';
-      gateReason = `WRONG GATE • This scanner is set to ${gateName}. ${formattedCat} pass is not valid here — please proceed to ${properGate}.`;
+    if (cat === 'all_access') {
+      isGateAllowed = true;
+    } else if (normalizedGate.includes('vvip')) {
+      // VVIP Gate accepts ONLY VVIP tier passes (vvip, courtside_box, courtside_floor)
+      const isVVIPPass = cat === 'vvip' || cat === 'courtside_box' || cat === 'courtside_floor';
+      if (!isVVIPPass) {
+        isGateAllowed = false;
+        const formattedCat = cat === 'regular' ? 'REGULAR' : cat.replace('_', ' ').toUpperCase();
+        gateReason = `WRONG GATE • This scanner is set to VVIP Gate. ${formattedCat} pass cannot scan here.`;
+      }
+    } else if (normalizedGate.includes('vip')) {
+      // VIP Gate accepts ONLY VIP tier passes (vip, courtside_vip, player_staff, media)
+      const isVIPPass = cat === 'vip' || cat === 'courtside_vip' || cat === 'player_staff' || cat === 'media';
+      if (!isVIPPass) {
+        isGateAllowed = false;
+        const formattedCat = cat === 'regular' ? 'REGULAR' : cat.replace('_', ' ').toUpperCase();
+        gateReason = `WRONG GATE • This scanner is set to VIP Gate. ${formattedCat} pass cannot scan here. (Please proceed to Regular Gate)`;
+      }
+    } else {
+      // Regular Gate accepts ONLY Regular & General Access passes
+      const isRegularPass = cat === 'regular' || cat === 'general_access';
+      if (!isRegularPass) {
+        isGateAllowed = false;
+        const formattedCat = cat.replace('_', ' ').toUpperCase();
+        gateReason = `WRONG GATE • This scanner is set to Regular Gate. ${formattedCat} pass cannot scan here. (Please proceed to VIP/VVIP Gate)`;
+      }
     }
 
     if (!isGateAllowed) {
@@ -992,8 +1034,6 @@ export const App: React.FC = () => {
             />
           )}
 
-          {activeTab === 'templates' && <TemplateManager />}
-
           {activeTab === 'orders' && (
             <OrdersWorkspace
               orders={visibleOrders}
@@ -1089,10 +1129,10 @@ export const App: React.FC = () => {
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
-        tickets={tickets}
-        events={events}
-        orders={orders}
-        customers={customers}
+        tickets={visibleTickets}
+        events={visibleEvents}
+        orders={visibleOrders}
+        customers={visibleCustomers}
         scanners={scanners}
         onOpenSuperAdminModal={() => setIsSuperAdminModalOpen(true)}
         onSelectTicket={(ticket) => {

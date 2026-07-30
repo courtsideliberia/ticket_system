@@ -1,11 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
-import { downloadPdf, getPhysicalSizeIn } from '../lib/exportTicket';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { PassCategory, PassTicket, TicketCanvasThemeId, EventRecord, PassTypeKind } from '../types';
-import { CANVAS_THEMES, DEFAULT_EVENT_INFO } from '../lib/ticketTemplateMap';
+import { PassCategory, PassTicket, TicketCanvasThemeId, EventRecord, PassTypeKind, TemplateCustomization } from '../types';
+import { DEFAULT_EVENT_INFO } from '../lib/ticketTemplateMap';
 import { TicketRenderer } from './TicketRenderer';
+import { TicketTemplateManager } from './TicketTemplateManager';
+import { downloadTicketPdf, downloadTicketPng, exportPassToCanvasImage } from '../lib/ticketExport';
 import {
   Ticket,
   UserCheck,
@@ -25,8 +26,7 @@ import {
   FileText,
   ImageDown,
   PackageCheck,
-  Loader2,
-  FileDown
+  Loader2
 } from 'lucide-react';
 
 interface PassGeneratorModalProps {
@@ -56,6 +56,8 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
   onGenerate,
   events = [],
 }) => {
+  if (!isOpen) return null;
+
   // Selected Pass Type Mode (Ticket vs Staff Pass vs QR Code)
   const [passType, setPassType] = useState<PassTypeKind>('ticket');
 
@@ -63,7 +65,10 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
   const [copiesCount, setCopiesCount] = useState<number>(1);
 
   // Selected Theme (for landscape tickets)
-  const [selectedThemeId, setSelectedThemeId] = useState<TicketCanvasThemeId>('gold_foil_vip');
+  const [selectedThemeId, setSelectedThemeId] = useState<TicketCanvasThemeId>('gold_championship');
+  const [templateCustomization, setTemplateCustomization] = useState<TemplateCustomization>({});
+  const [templateThemeMode, setTemplateThemeMode] = useState<'dark' | 'light'>('dark');
+  const [sponsorLogoUrl, setSponsorLogoUrl] = useState<string | undefined>(undefined);
 
   // Form Fields - Event Info
   const [selectedEventId, setSelectedEventId] = useState<string>('');
@@ -118,10 +123,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
   // Real export state (PNG capture refs, per-card/zip loading indicators)
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
   const [zipping, setZipping] = useState(false);
-
-  if (!isOpen) return null;
 
   // Pick created event handler
   const handleEventSelect = (eventId: string) => {
@@ -171,6 +173,9 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
     holderRole: holderRole.trim() || undefined,
     category,
     themeId: selectedThemeId,
+    templateCustomization,
+    templateThemeMode,
+    sponsorLogoUrl,
     eventName: eventName.trim() || 'SAMPLE EVENT NAME',
     eventDate: eventDate.trim() || undefined as any,
     eventTime: eventTime.trim() || undefined,
@@ -202,15 +207,9 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
   };
 
   const handleDownloadOne = async (t: PassTicket) => {
-    const node = cardRefs.current[t.id];
-    if (!node) return;
     setDownloadingId(t.id);
     try {
-      const dataUrl = await captureNode(node);
-      const link = document.createElement('a');
-      link.download = `Courtside_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}.png`;
-      link.href = dataUrl;
-      link.click();
+      await downloadTicketPng(t, `Courtside_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}`);
     } catch (err) {
       console.error('PNG export failed', err);
       alert('Could not export this pass as an image. Please try again.');
@@ -219,14 +218,12 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
     }
   };
 
+  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
+
   const handleDownloadOnePdf = async (t: PassTicket) => {
-    const node = cardRefs.current[t.id];
-    if (!node) return;
     setDownloadingPdfId(t.id);
     try {
-      const orientation = t.customization?.orientation || (t.passType === 'staff_badge' ? 'portrait' : 'landscape');
-      const size = getPhysicalSizeIn(t.passType || 'ticket', orientation);
-      await downloadPdf(node, `Courtside_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}_300DPI.pdf`, { ...size, backgroundColor: '#0f172a' });
+      await downloadTicketPdf(t, `Courtside_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}`);
     } catch (err) {
       console.error('PDF export failed', err);
       alert('Could not export this pass as a PDF. Please try again.');
@@ -241,9 +238,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
     try {
       const zip = new JSZip();
       for (const t of generatedSuccess) {
-        const node = cardRefs.current[t.id];
-        if (!node) continue;
-        const dataUrl = await captureNode(node);
+        const dataUrl = await exportPassToCanvasImage(t, 'png');
         const base64 = dataUrl.split(',')[1];
         zip.file(`Courtside_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}.png`, base64, { base64: true });
       }
@@ -365,6 +360,9 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
         holderRole: holderRole.trim() || (passType === 'staff_badge' ? 'EVENT STAFF' : undefined),
         category: category,
         themeId: selectedThemeId,
+        templateCustomization,
+        templateThemeMode,
+        sponsorLogoUrl,
         eventName: eventName.trim(),
         eventDate: eventDate.trim(),
         eventTime: eventTime.trim() || undefined,
@@ -485,9 +483,10 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
                       <button
                         onClick={() => handleDownloadOnePdf(t)}
                         disabled={downloadingPdfId === t.id}
-                        className="text-blue-400 hover:underline flex items-center gap-1 disabled:opacity-60"
+                        className="text-amber-400 hover:underline flex items-center gap-1 disabled:opacity-60"
+                        title="Export as a 300 DPI print-ready PDF"
                       >
-                        {downloadingPdfId === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+                        {downloadingPdfId === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
                         {downloadingPdfId === t.id ? 'Exporting…' : 'PDF (300 DPI)'}
                       </button>
                     </div>
@@ -578,38 +577,19 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
                 </div>
               </div>
 
-              {/* IF PASS TYPE = TICKET: SELECT CANVAS THEME */}
+              {/* IF PASS TYPE = TICKET: FULL TEMPLATE ENGINE (gallery, customization, live preview) */}
               {passType === 'ticket' && (
-                <div className="space-y-3 pt-2 border-t border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-heading font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-                      <Palette className="w-4 h-4 text-amber-400" /> Choose Landscape Theme
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {(Object.keys(CANVAS_THEMES) as TicketCanvasThemeId[]).map((tId) => {
-                      const theme = CANVAS_THEMES[tId];
-                      const isSelected = selectedThemeId === tId;
-
-                      return (
-                        <button
-                          key={tId}
-                          type="button"
-                          onClick={() => setSelectedThemeId(tId)}
-                          className={`p-2.5 rounded-xl border text-left transition-all ${
-                            isSelected
-                              ? 'border-amber-400 bg-slate-800 text-white ring-1 ring-amber-400'
-                              : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          <div className={`h-1.5 w-full rounded-full mb-1.5 ${theme.previewGradient}`} />
-                          <p className="text-[11px] font-bold truncate">{theme.name}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <TicketTemplateManager
+                  selectedThemeId={selectedThemeId}
+                  onSelectTheme={setSelectedThemeId}
+                  customization={templateCustomization}
+                  onChangeCustomization={setTemplateCustomization}
+                  themeMode={templateThemeMode}
+                  onChangeThemeMode={setTemplateThemeMode}
+                  sponsorLogoUrl={sponsorLogoUrl}
+                  onChangeSponsorLogoUrl={setSponsorLogoUrl}
+                  previewTicket={livePreviewTicket}
+                />
               )}
 
               {/* 2. BOLD EVENT DETAILS & LOGO */}

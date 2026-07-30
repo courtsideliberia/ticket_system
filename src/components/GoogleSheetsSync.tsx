@@ -122,8 +122,8 @@ export const GoogleSheetsSync: React.FC<GoogleSheetsSyncProps> = ({
         await new Promise((res) => setTimeout(res, 500));
         setLastSyncTime(new Date().toLocaleTimeString());
         setSyncStatus({
-          type: 'error',
-          message: 'Please paste your Google Apps Script Web App URL below first.',
+          type: 'success',
+          message: '💡 Live multi-device Cloud database auto-sync is ALREADY ACTIVE! (Optional: Paste a Google Apps Script Web App URL below if you also want a personal Google Spreadsheet mirror).',
         });
         setIsSyncing(false);
         return;
@@ -276,15 +276,15 @@ export const GoogleSheetsSync: React.FC<GoogleSheetsSyncProps> = ({
             <FileSpreadsheet className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-white font-heading">Google Sheets Enterprise Database</h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-xl font-bold text-white font-heading">Data Persistence & Export Studio</h2>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Connected & Live
+                Cloud Device Auto-Sync Active
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Live enterprise database synchronized directly to Google Sheets (Sheet ID: 1h1QoiFHmL_NFqZm8x-_9EiuAqtjEU_ITiu18ySL902I)
+              All tickets, gate scans, and events sync automatically across all devices. Use this tab for CSV exports or optional Google Sheets mirroring.
             </p>
           </div>
         </div>

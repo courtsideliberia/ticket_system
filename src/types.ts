@@ -40,27 +40,29 @@ export type PassCategory =
   | 'player_staff';
 
 export type TicketCanvasThemeId =
-  | 'gold_trophy'
-  | 'red_slam_dunk'
-  | 'blue_arena'
-  | 'geometric_gold_vip'
-  | 'grunge_dunker'
+  | 'gold_championship'
+  | 'crimson_slam'
+  | 'royal_courtside'
   | 'emerald_press'
-  | 'royal_purple'
-  | 'neon_cyberpunk'
-  | 'platinum_suite'
-  | 'vintage_classic'
-  | 'minimal_modern'
-  | 'electric_spike'
-  | 'flame_fire'
-  | 'crimson_stadium'
-  | 'midnight_stealth'
-  | 'diamond_all_access'
-  | 'gold_foil_vip'
-  | 'purple_gold_sports'
-  | 'neon_esports'
-  | 'sleek_black_match'
-  | 'courtside_classic';
+  | 'violet_allstar'
+  | 'midnight_neon'
+  | 'platinum_vvip'
+  | 'sunset_finals'
+  | 'ice_arena'
+  | 'copper_classic'
+  | 'confetti_celebration'
+  | 'trophy_gold_foil'
+  | 'stadium_lights'
+  | 'minimal_light_court'
+  | 'student_access'
+  | 'media_press_pass'
+  | 'stadium_championship_art_bg'
+  | 'vvip_gold_badge_art_bg'
+  | 'cyber_neon_match_art_bg'
+  | 'retro_vintage_stub_art_bg'
+  | 'royal_courtside_art_bg'
+  | 'blank_canvas'
+  | (string & {});
 
 export type FontFamilyOption = 'sans' | 'heading' | 'serif' | 'mono' | 'display' | 'stencil';
 export type BorderStyleOption = 'solid_gold' | 'neon_glow' | 'double_metallic' | 'dashed_stub' | 'none' | 'chamfer';
@@ -68,11 +70,55 @@ export type BadgeStyleOption = 'pill_stars' | 'shield_crest' | 'metallic_ribbon'
 export type QRFrameStyleOption = 'security_glow' | 'gold_metallic' | 'corner_crosshairs' | 'glass_card' | 'minimal';
 export type CornerStyleOption = 'notch_cutouts' | 'rounded_lg' | 'sharp_square' | 'pill_edges';
 export type TicketOrientation = 'portrait' | 'landscape';
-export type ThemeMode = 'dark' | 'light';
 export type SecurityWatermarkStyle = 'shield_logo' | 'starburst_hologram' | 'official_seal' | 'none';
 export type SponsorLogoPlacement = 'top_header' | 'bottom_stub' | 'footer' | 'none';
 
+export type ThemeMode = 'dark' | 'light';
+
+export interface CanvasElement {
+  id: string;
+  type: 'text' | 'image' | 'logo' | 'qr' | 'barcode' | 'badge' | 'line' | 'watermark' | 'shape' | 'rectangle' | 'circle' | string;
+  content?: string;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  fontSize?: number;
+  color?: string;
+  fontFamily?: string;
+  fontWeight?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  opacity?: number;
+  [key: string]: any;
+}
+
+export type CanvasElementType = CanvasElement['type'];
+
+export interface CanvasThemeDefinition {
+  id: TicketCanvasThemeId | string;
+  name: string;
+  mode?: 'dark' | 'light';
+  borderStyle?: BorderStyleOption;
+  badgeStyle?: BadgeStyleOption;
+  qrFrameStyle?: QRFrameStyleOption;
+  defaultOrientation?: TicketOrientation;
+  cornerStyle?: CornerStyleOption;
+  securityWatermark?: SecurityWatermarkStyle;
+  sponsorLogoPosition?: SponsorLogoPlacement;
+  fontFamily?: FontFamilyOption;
+  patternId?: string;
+  colors?: {
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+    text?: string;
+    background?: string;
+  };
+  [key: string]: any;
+}
+
 export interface TemplateCustomization {
+  mode?: 'dark' | 'light';
   primaryColor?: string;
   secondaryColor?: string;
   accentColor?: string;
@@ -85,7 +131,10 @@ export interface TemplateCustomization {
   cornerStyle?: CornerStyleOption;
   securityWatermark?: SecurityWatermarkStyle;
   sponsorLogoPosition?: SponsorLogoPlacement;
-  mode?: ThemeMode;
+  backgroundImageUrl?: string;
+  bgOverlayOpacity?: number; // 0 to 1 scale for image backdrop darkening
+  canvasElements?: CanvasElement[];
+  [key: string]: any;
 }
 
 export type PassStatus = 'valid' | 'used' | 'revoked' | 'expired' | 'blocked' | 'refunded' | 'transferred';
@@ -94,7 +143,6 @@ export type AppNavView =
   | 'dashboard'
   | 'events'
   | 'tickets'
-  | 'templates'
   | 'orders'
   | 'customers'
   | 'users'
@@ -119,7 +167,6 @@ export interface PassTicket {
   holderRole?: string;
   category: PassCategory;
   themeId?: TicketCanvasThemeId;
-  customization?: TemplateCustomization;
   eventName: string;
   eventDate: string;
   eventTime?: string;
@@ -135,12 +182,22 @@ export interface PassTicket {
   scannedAt?: string;
   scannedBy?: string;
   customLogoUrl?: string;
+  /** A separate sponsor/partner logo, distinct from the event's own logo
+   * above — its on-ticket placement is controlled by
+   * templateCustomization.sponsorLogoPosition. */
+  sponsorLogoUrl?: string;
   qrCodeData: string;
   notes?: string;
   batchId?: string;
   orderId?: string;
   createdByUserId?: string;
   createdByUserName?: string;
+
+  /** Per-ticket overrides on top of the chosen template's own defaults —
+   * omit any/all fields and the template's defaults apply, so existing
+   * tickets (with no customization saved) render exactly as designed. */
+  templateCustomization?: TemplateCustomization;
+  templateThemeMode?: 'dark' | 'light';
 }
 
 export interface OrderRecord {

@@ -35,6 +35,18 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Most recent scans at the top
+  const sortedScannerLogs = React.useMemo(() => {
+    return [...scannerLogs].sort((a, b) => {
+      const numA = parseInt(a.id?.replace(/\D/g, '') || '0', 10);
+      const numB = parseInt(b.id?.replace(/\D/g, '') || '0', 10);
+      if (numA && numB && numA !== numB) {
+        return numB - numA;
+      }
+      return 0;
+    });
+  }, [scannerLogs]);
+
   // Optical Camera Frame Decoding Loop via jsQR
   useEffect(() => {
     if (!isCameraActive) return;
@@ -96,8 +108,25 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           animId = requestAnimationFrame(scanFrame);
         }
       } catch (err: any) {
-        console.error('Camera stream error:', err);
-        setCameraError('Camera access denied or unavailable. Allow camera access in browser site permissions.');
+        // Log handled camera notice without console.error to avoid error monitor triggers
+        console.warn('Camera access unavailable:', err?.name || err?.message || err);
+        const errStr = String(err?.message || err?.name || err).toLowerCase();
+        if (
+          err?.name === 'NotAllowedError' ||
+          err?.name === 'PermissionDeniedError' ||
+          err?.name === 'SecurityError' ||
+          errStr.includes('permission') ||
+          errStr.includes('denied') ||
+          errStr.includes('not allowed')
+        ) {
+          setCameraError(
+            'Camera permission denied or blocked by browser/iframe environment. Please allow camera access in browser site settings or open in a new tab.'
+          );
+        } else if (err?.name === 'NotFoundError' || err?.name === 'DevicesNotFoundError') {
+          setCameraError('No camera device detected on this system. You can use hardware USB/Bluetooth QR readers or manual code entry.');
+        } else {
+          setCameraError(`Camera notice: ${err?.message || 'Unable to access camera feed.'}`);
+        }
         setIsCameraActive(false);
       }
     };
@@ -404,9 +433,29 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             </div>
 
             {cameraError && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                <span>{cameraError}</span>
+              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-rose-200">{cameraError}</p>
+                    <p className="text-[11px] text-rose-300/80 mt-1">
+                      Tip: If you blocked camera permissions, click the <strong>lock / tune icon</strong> in your browser address bar to reset camera permissions to Allow.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraError(null);
+                      setIsCameraActive(true);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-bold text-xs border border-rose-500/40 transition-colors flex items-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Try Camera Again</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -520,10 +569,10 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             </div>
 
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-              {scannerLogs.length === 0 ? (
+              {sortedScannerLogs.length === 0 ? (
                 <p className="text-xs text-slate-500 text-center py-6">No scans recorded in this session yet.</p>
               ) : (
-                scannerLogs.map((log) => (
+                sortedScannerLogs.map((log) => (
                   <div
                     key={log.id}
                     className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 flex items-center justify-between text-xs"

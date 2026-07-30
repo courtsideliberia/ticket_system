@@ -5,6 +5,7 @@ import { toPng } from 'html-to-image';
 import { PASS_TEMPLATES } from '../lib/ticketTemplateMap';
 import { QRCodeSVG } from 'qrcode.react';
 import { TicketRenderer } from './TicketRenderer';
+import { downloadTicketPng } from '../lib/ticketExport';
 
 interface SharePassModalProps {
   isOpen?: boolean;
@@ -50,14 +51,10 @@ export const SharePassModal: React.FC<SharePassModalProps> = ({
 Verified by Courtside Liberia Platform`;
 
   const handleDownloadPNG = async () => {
-    if (!cardRef.current) return;
+    if (!ticket) return;
     try {
       setIsDownloading(true);
-      const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 3 });
-      const link = document.createElement('a');
-      link.download = `Pass_${ticket.ticketCode}_${(ticket.holderName || 'Guest').replace(/\s+/g, '_')}.png`;
-      link.href = dataUrl;
-      link.click();
+      await downloadTicketPng(ticket, `Pass_${ticket.ticketCode}_${(ticket.holderName || 'Guest').replace(/\s+/g, '_')}.png`);
     } catch (err) {
       console.error('Failed to generate pass PNG image', err);
       alert('Could not generate PNG image directly. You can copy or screenshot the pass preview.');

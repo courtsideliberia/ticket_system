@@ -47,6 +47,17 @@ export default function DashboardTab({
     scanLogs
   } = analytics;
 
+  const sortedScanLogs = React.useMemo(() => {
+    return [...scanLogs].sort((a: any, b: any) => {
+      const numA = parseInt(a.id?.replace(/\D/g, '') || '0', 10);
+      const numB = parseInt(b.id?.replace(/\D/g, '') || '0', 10);
+      if (numA && numB && numA !== numB) {
+        return numB - numA;
+      }
+      return 0;
+    });
+  }, [scanLogs]);
+
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Page Header Area */}
@@ -230,12 +241,12 @@ export default function DashboardTab({
 
         <div className="overflow-x-auto">
           <div className="max-h-96 overflow-y-auto space-y-2 pr-1 scrollbar-thin scrollbar-thumb-slate-800">
-            {scanLogs.length === 0 ? (
+            {sortedScanLogs.length === 0 ? (
               <div className="py-12 text-center text-slate-500 text-xs font-mono">
                 No tickets scanned yet. Launch the camera or manually check-in a ticket in the Scan tab!
               </div>
             ) : (
-              scanLogs.map((log: any) => {
+              sortedScanLogs.map((log: any) => {
                 const isSuccess = log.status === 'valid';
                 const isDuplicate = log.status === 'duplicate';
                 

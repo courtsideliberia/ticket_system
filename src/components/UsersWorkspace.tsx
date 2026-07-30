@@ -87,8 +87,8 @@ export const UsersWorkspace: React.FC<UsersWorkspaceProps> = ({
 
   const handleSubmitNewUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !customPasscode.trim()) {
-      alert('Please provide a Name, Email, and Unique Passcode.');
+    if (!name.trim() || !customPasscode.trim()) {
+      alert('Please provide a User Full Name and Unique Passcode.');
       return;
     }
 
@@ -102,7 +102,7 @@ export const UsersWorkspace: React.FC<UsersWorkspaceProps> = ({
     const newUser: UserAccount = {
       id: `usr-${Date.now()}`,
       name: name.trim(),
-      email: email.trim(),
+      email: email.trim() || `${name.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}@courtside.app`,
       phone: phone.trim() || undefined,
       role,
       passcode: customPasscode.trim(),
@@ -132,11 +132,24 @@ export const UsersWorkspace: React.FC<UsersWorkspaceProps> = ({
     setRevealedPasscodes((prev) => ({ ...prev, [userId]: !prev[userId] }));
   };
 
+  const isUserSuperAdmin = isSuperAdmin || currentUser?.role === 'super_admin';
+
   const filteredUsers = users.filter((u) => {
+    // Non-super-admin users only see accounts they created or their own account
+    if (!isUserSuperAdmin) {
+      const isMine =
+        u.id === currentUser?.id ||
+        u.createdBy === currentUser?.id ||
+        u.createdBy === currentUser?.name;
+      if (!isMine) return false;
+    }
+
+    const search = searchTerm.toLowerCase();
     const matchesSearch =
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.passcode.includes(searchTerm);
+      u.name.toLowerCase().includes(search) ||
+      (u.email ? u.email.toLowerCase().includes(search) : false) ||
+      (u.phone ? u.phone.includes(search) : false) ||
+      u.passcode.includes(search);
     const matchesRole = roleFilter === 'all' || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -421,27 +434,26 @@ export const UsersWorkspace: React.FC<UsersWorkspaceProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                    Email Address
+                    Email Address <span className="text-slate-500 font-normal lowercase">(optional)</span>
                   </label>
                   <input
                     type="email"
-                    required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="organizer@lba.lr"
+                    placeholder="organizer@lba.lr (Optional)"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                    Phone Number
+                    Phone Number <span className="text-slate-500 font-normal lowercase">(optional)</span>
                   </label>
                   <input
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+231 88 123 456"
+                    placeholder="+231 88 123 456 (Optional)"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
