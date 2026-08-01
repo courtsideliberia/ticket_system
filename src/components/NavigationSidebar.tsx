@@ -25,6 +25,7 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { AppNavView, UserAccount } from '../types';
+import { CourtIQBadge, CourtIQIcon } from './CourtIQLogo';
 
 export type TabType = AppNavView;
 
@@ -157,37 +158,12 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
         {/* Brand Header */}
         <div className="h-16 px-4 border-b border-slate-800/80 flex items-center justify-between gap-3">
           {!isCollapsed && (
-            <div
-              onClick={() => handleSelect('dashboard')}
-              className="flex items-center gap-3 cursor-pointer group"
-            >
-              {customLogoUrl ? (
-                <img src={customLogoUrl} alt="Logo" className="h-8 w-auto object-contain rounded-md" />
-              ) : (
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-red-600 flex items-center justify-center font-heading font-extrabold text-white text-lg shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
-                  CS
-                </div>
-              )}
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-heading font-extrabold text-sm tracking-wider text-white">
-                    COURTSIDE
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 font-mono text-[9px] font-bold">
-                    LR
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-medium">Digital Pass Suite</p>
-              </div>
-            </div>
+            <CourtIQBadge onClick={() => handleSelect('dashboard')} />
           )}
 
           {isCollapsed && (
-            <div
-              onClick={() => handleSelect('dashboard')}
-              className="h-10 w-10 mx-auto rounded-xl bg-gradient-to-br from-blue-600 to-red-600 flex items-center justify-center font-heading font-extrabold text-white text-xl shadow-lg shadow-blue-500/20 cursor-pointer"
-            >
-              CS
+            <div onClick={() => handleSelect('dashboard')}>
+              <CourtIQIcon size="md" className="hover:scale-110 transition-transform" />
             </div>
           )}
 

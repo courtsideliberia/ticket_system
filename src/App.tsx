@@ -736,8 +736,8 @@ export const App: React.FC = () => {
       const masterTicket: PassTicket = {
         id: 'owner-master-pass',
         ticketCode: '004455',
-        holderName: 'Courtside Owner / Super Admin',
-        holderEmail: 'courtsideliberia@gmail.com',
+        holderName: 'CourtiQ Owner / Super Admin',
+        holderEmail: 'courtiq.admin@gmail.com',
         category: 'all_access',
         eventName: 'LBA Master Command Pass',
         eventDate: '2026 Season',
@@ -746,7 +746,7 @@ export const App: React.FC = () => {
         currency: 'USD',
         status: 'valid',
         issuedAt: new Date().toISOString(),
-        qrCodeData: '004455|Courtside Owner|super_admin',
+        qrCodeData: '004455|CourtiQ Owner|super_admin',
         notes: 'Master Super Admin Security Key 004455',
       };
 

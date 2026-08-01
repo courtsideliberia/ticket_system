@@ -284,7 +284,7 @@ export const SecurityWatermarkSVG: React.FC<{ style?: SecurityWatermarkStyle; co
         />
         <circle cx="60" cy="70" r="36" stroke={color} strokeWidth="1.5" fill="none" />
         <text x="60" y="66" textAnchor="middle" fill={color} fontSize="7" fontWeight="900" letterSpacing="1">
-          COURTSIDE
+          COURTIQ
         </text>
         <text x="60" y="78" textAnchor="middle" fill={color} fontSize="6" fontWeight="700">
           OFFICIAL VERIFIED

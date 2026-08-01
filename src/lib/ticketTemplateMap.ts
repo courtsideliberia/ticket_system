@@ -62,11 +62,11 @@ export const CANVAS_THEMES: Record<TicketCanvasThemeId, CanvasThemeDefinition> =
 export const PASS_TEMPLATES: Record<PassCategory, PassTemplate> = {
   courtside_vip: {
     id: 'tpl_courtside_vip',
-    name: 'Courtside Ultra VIP',
+    name: 'CourtiQ Ultra VIP',
     category: 'courtside_vip',
     bgGradient: 'from-blue-950 via-slate-900 to-red-950',
     badgeBg: 'bg-blue-500/20 text-blue-300 border-blue-400/40',
-    badgeText: 'COURTSIDE VIP',
+    badgeText: 'COURTIQ VIP',
     borderColor: 'border-blue-500/40',
     accentColor: '#3b82f6',
     glowColor: 'rgba(59, 130, 246, 0.25)',
@@ -98,7 +98,7 @@ export const PASS_TEMPLATES: Record<PassCategory, PassTemplate> = {
   },
   vvip: {
     id: 'tpl_vvip',
-    name: 'VVIP Courtside',
+    name: 'VVIP CourtiQ',
     category: 'vvip',
     bgGradient: 'from-purple-950 via-slate-950 to-amber-950',
     badgeBg: 'bg-amber-400/30 text-amber-300 border-amber-400/80',
@@ -122,7 +122,7 @@ export const PASS_TEMPLATES: Record<PassCategory, PassTemplate> = {
   },
   courtside_box: {
     id: 'tpl_courtside_box',
-    name: 'Courtside Box Suite',
+    name: 'CourtiQ Box Suite',
     category: 'courtside_box',
     bgGradient: 'from-blue-950 via-slate-900 to-slate-950',
     badgeBg: 'bg-blue-500/20 text-blue-300 border-blue-400/40',
@@ -134,7 +134,7 @@ export const PASS_TEMPLATES: Record<PassCategory, PassTemplate> = {
   },
   courtside_floor: {
     id: 'tpl_courtside_floor',
-    name: 'Courtside Floor Access',
+    name: 'CourtiQ Floor Access',
     category: 'courtside_floor',
     bgGradient: 'from-rose-950 via-slate-900 to-red-950',
     badgeBg: 'bg-rose-500/20 text-rose-300 border-rose-400/40',

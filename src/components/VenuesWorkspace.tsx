@@ -32,7 +32,7 @@ export const VenuesWorkspace: React.FC = () => {
           {/* Seat Layout Sections Map */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
             <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-              <span className="text-[10px] text-blue-400 uppercase font-mono font-bold">Courtside A & B</span>
+              <span className="text-[10px] text-blue-400 uppercase font-mono font-bold">CourtiQ A & B</span>
               <p className="font-bold text-white text-sm">200 VIP Seats</p>
               <p className="text-[10px] text-slate-400">VIP Gate 1 Access</p>
             </div>
@@ -64,7 +64,7 @@ export const VenuesWorkspace: React.FC = () => {
           <div className="space-y-3 text-xs">
             <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
               <p className="font-bold text-red-400">VIP Gate 1</p>
-              <p className="text-slate-300">Dedicated for Courtside VIP & Box Suites</p>
+              <p className="text-slate-300">Dedicated for CourtiQ VIP & Box Suites</p>
             </div>
             <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
               <p className="font-bold text-blue-400">Gate 2 & 3 General</p>

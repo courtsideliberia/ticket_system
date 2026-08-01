@@ -66,7 +66,7 @@ export const GeneratedPassesGallery: React.FC<GeneratedPassesGalleryProps> = ({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Courtside_Passes_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `CourtiQ_Passes_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -158,7 +158,7 @@ export const GeneratedPassesGallery: React.FC<GeneratedPassesGalleryProps> = ({
       {filteredTickets.length === 0 ? (
         <div className="p-12 text-center rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
           <Ticket className="w-12 h-12 mx-auto text-slate-700" />
-          <h4 className="text-base font-bold text-slate-300">No Courtside Passes Found</h4>
+          <h4 className="text-base font-bold text-slate-300">No CourtiQ Passes Found</h4>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
             Try adjusting your search query or generate new digital tickets.
           </p>

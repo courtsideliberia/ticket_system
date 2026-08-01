@@ -1,6 +1,6 @@
 {
-  "name": "Courtside Pass Generator",
-  "description": "Courtside Liberia digital pass generator, ticket scanner, client dashboard, and pass management system.",
+  "name": "CourtiQ",
+  "description": "CourtiQ — Secure. Simple. Smart. Digital pass generator, ticket scanner, client dashboard, and pass management system.",
   "requestFramePermissions": [
     "camera"
   ],

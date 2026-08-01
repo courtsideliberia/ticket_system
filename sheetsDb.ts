@@ -345,8 +345,8 @@ function defaultSeedState(): AppState {
     users: [
       {
         id: 'usr-owner-001',
-        name: 'Courtside Owner / Super Admin',
-        email: 'courtsideliberia@gmail.com',
+        name: 'CourtiQ Owner / Super Admin',
+        email: 'courtiq.admin@gmail.com',
         phone: '+231 88 000 4455',
         role: 'super_admin',
         passcode: '004455',
@@ -373,7 +373,7 @@ function defaultSeedState(): AppState {
         id: 'act-seed',
         user: 'System',
         action: 'initialized the database',
-        target: 'Courtside Liberia',
+        target: 'CourtiQ System',
         timestamp: now,
         type: 'system'
       }

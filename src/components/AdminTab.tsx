@@ -35,7 +35,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
             <Settings className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white font-heading">Courtside Administration & Settings</h2>
+            <h2 className="text-xl font-bold text-white font-heading">CourtiQ Administration & Settings</h2>
             <p className="text-xs text-slate-400 mt-0.5">Configure event defaults, custom logos, and system parameters</p>
           </div>
         </div>
@@ -129,7 +129,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
           <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-2 text-xs">
             <h4 className="font-bold text-slate-300 uppercase tracking-wider text-[11px]">System Specifications</h4>
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1 font-mono text-slate-400">
-              <p>• App: Courtside Digital Pass Suite</p>
+              <p>• App: CourtiQ Digital Pass Suite</p>
               <p>• Version: 2.5.0-PROD</p>
               <p>• QR Engine: High-Density SVG Matrix</p>
               <p>• Gate Audio: Web Audio API Synthesizer</p>

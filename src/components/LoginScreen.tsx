@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UserAccount } from '../types';
+import { CourtIQIcon } from './CourtIQLogo';
 import {
   ShieldCheck,
   KeyRound,
@@ -107,27 +108,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin, custom
           
           {/* Ringed Circular Icon / Avatar Badge */}
           <div className="relative group">
-            <div className="w-20 h-20 rounded-full border-2 border-blue-400/60 p-1 flex items-center justify-center bg-slate-950/70 shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all group-hover:border-blue-400 group-hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]">
-              {customLogoUrl ? (
-                <img
-                  src={customLogoUrl}
-                  alt="Courtside Pass"
-                  className="w-full h-full object-contain rounded-full bg-slate-900 p-1.5"
-                />
-              ) : (
-                <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-inner">
-                  <Ticket className="w-8 h-8" />
-                </div>
-              )}
+            <div className="w-20 h-20 rounded-full border-2 border-red-500/60 p-1 flex items-center justify-center bg-slate-950/90 shadow-[0_0_25px_rgba(220,38,38,0.3)] transition-all group-hover:border-red-400 group-hover:shadow-[0_0_35px_rgba(220,38,38,0.5)]">
+              <CourtIQIcon size="xl" className="w-full h-full" />
             </div>
             {/* Outer subtle halo ring */}
-            <div className="absolute -inset-1.5 rounded-full border border-blue-400/20 pointer-events-none animate-pulse" />
+            <div className="absolute -inset-1.5 rounded-full border border-blue-400/30 pointer-events-none animate-pulse" />
           </div>
 
-          {/* App Title */}
-          <h1 className="mt-3 text-lg font-light tracking-wider text-white drop-shadow-sm font-heading">
-            Courtside Pass
-          </h1>
+          {/* App Title & Slogan */}
+          <div className="mt-3 flex flex-col items-center">
+            <h1 className="text-2xl font-black font-heading tracking-tight flex items-baseline">
+              <span className="text-white">Court</span>
+              <span className="text-red-500">iQ</span>
+            </h1>
+            <p className="text-[11px] font-mono font-bold tracking-[0.2em] text-slate-400 uppercase mt-0.5">
+              Secure. Simple. Smart.
+            </p>
+          </div>
         </div>
 
         {/* Form Container */}
@@ -265,7 +262,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin, custom
         <div className="py-3 px-4 bg-slate-950/60 border-t border-slate-800/60 text-center">
           <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5 font-medium">
             <KeyRound className="w-3.5 h-3.5 text-blue-400" />
-            <span>Courtside Security Portal</span>
+            <span>CourtiQ Security Portal</span>
           </p>
         </div>
       </div>

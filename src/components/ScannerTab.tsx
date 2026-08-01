@@ -239,7 +239,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
             <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400">
               <QrCode className="w-5 h-5" />
             </span>
-            <h2 className="text-xl font-bold text-white font-heading">Courtside Gate Scanner</h2>
+            <h2 className="text-xl font-bold text-white font-heading">CourtiQ Gate Scanner</h2>
             <span className="ml-2 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
               {tickets.length} Passes Ready
@@ -321,7 +321,7 @@ export const ScannerTab: React.FC<ScannerTabProps> = ({
           {[
             { id: 'Regular Gate', label: 'Regular Gate', badge: 'REGULAR ONLY', desc: 'Accepts Regular Passes Only' },
             { id: 'VIP Gate', label: 'VIP Gate', badge: 'VIP ONLY', desc: 'Accepts VIP Passes Only' },
-            { id: 'VVIP Gate', label: 'VVIP Gate', badge: 'VVIP ONLY', desc: 'Accepts VVIP & Courtside Passes Only' },
+            { id: 'VVIP Gate', label: 'VVIP Gate', badge: 'VVIP ONLY', desc: 'Accepts VVIP & CourtiQ Passes Only' },
           ].map((gate) => {
             const isSelected = gateName === gate.id;
             return (

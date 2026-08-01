@@ -24,8 +24,8 @@ export const PwaIosModal: React.FC<PwaIosModalProps> = ({ isOpen, onClose }) => 
             <Smartphone className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-heading font-extrabold text-white">Install Courtside App</h3>
-            <p className="text-xs text-slate-400">Add Courtside Pass Generator to your Home Screen</p>
+            <h3 className="text-lg font-heading font-extrabold text-white">Install CourtiQ App</h3>
+            <p className="text-xs text-slate-400">Add CourtiQ Pass Generator to your Home Screen</p>
           </div>
         </div>
 
@@ -67,7 +67,7 @@ export const PwaIosModal: React.FC<PwaIosModalProps> = ({ isOpen, onClose }) => 
                 Tap 'Add' to launch offline app <CheckCircle2 className="w-4 h-4 text-blue-400 inline" />
               </p>
               <p className="text-slate-400 text-[11px] mt-0.5">
-                Courtside Pass will appear as an app icon on your home screen for full offline scanning.
+                CourtiQ will appear as an app icon on your home screen for full offline scanning.
               </p>
             </div>
           </div>

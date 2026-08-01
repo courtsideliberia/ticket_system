@@ -72,7 +72,7 @@ export async function exportPassToCanvasImage(
     }
   }, 100);
 
-  const defaultName = filename || `Courtside_Pass_${ticket.ticketCode.replace(/[^a-zA-Z0-9-_]/g, '_')}`;
+  const defaultName = filename || `CourtiQ_Pass_${ticket.ticketCode.replace(/[^a-zA-Z0-9-_]/g, '_')}`;
 
   if (format === 'png') {
     const link = document.createElement('a');

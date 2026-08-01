@@ -35,7 +35,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
       <div className="p-8 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-blue-950/60 border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2 z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5" /> Courtside Event Operations
+            <Sparkles className="w-3.5 h-3.5" /> CourtiQ Event Operations
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white font-heading tracking-tight">
             Liberia Basketball Championship Control Center
@@ -105,7 +105,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
             </div>
           </div>
           <p className="text-xl sm:text-2xl font-extrabold text-white font-heading font-mono">{formatRevenueSummary(tickets)}</p>
-          <p className="text-[11px] text-slate-500">Courtside VIP & Box packages included</p>
+          <p className="text-[11px] text-slate-500">CourtiQ VIP & Box packages included</p>
         </div>
 
         <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-2">
@@ -160,7 +160,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
         <div className="lg:col-span-7 p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
-              Recent Courtside Pass Issuances
+              Recent CourtiQ Pass Issuances
             </h3>
             <span className="text-xs text-blue-400 font-semibold">Showing latest</span>
           </div>
@@ -175,7 +175,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center font-mono font-bold text-blue-400 text-xs">
-                      CS
+                      iQ
                     </div>
                     <div>
                       <p className="font-bold text-white">{t.holderName}</p>
@@ -187,7 +187,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${tpl.badgeBg}`}>
                       {tpl.badgeText}
                     </span>
-                    <p className="text-[10px] text-slate-400 mt-1">{t.section || 'Courtside'}</p>
+                    <p className="text-[10px] text-slate-400 mt-1">{t.section || 'CourtiQ'}</p>
                   </div>
                 </div>
               );

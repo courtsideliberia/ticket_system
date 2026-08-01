@@ -209,7 +209,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
   const handleDownloadOne = async (t: PassTicket) => {
     setDownloadingId(t.id);
     try {
-      await downloadTicketPng(t, `Courtside_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}`);
+      await downloadTicketPng(t, `CourtiQ_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}`);
     } catch (err) {
       console.error('PNG export failed', err);
       alert('Could not export this pass as an image. Please try again.');
@@ -223,7 +223,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
   const handleDownloadOnePdf = async (t: PassTicket) => {
     setDownloadingPdfId(t.id);
     try {
-      await downloadTicketPdf(t, `Courtside_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}`);
+      await downloadTicketPdf(t, `CourtiQ_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}`);
     } catch (err) {
       console.error('PDF export failed', err);
       alert('Could not export this pass as a PDF. Please try again.');
@@ -240,10 +240,10 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
       for (const t of generatedSuccess) {
         const dataUrl = await exportPassToCanvasImage(t, 'png');
         const base64 = dataUrl.split(',')[1];
-        zip.file(`Courtside_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}.png`, base64, { base64: true });
+        zip.file(`CourtiQ_${t.ticketCode.replace(/[^a-z0-9-_]/gi, '_')}.png`, base64, { base64: true });
       }
       const blob = await zip.generateAsync({ type: 'blob' });
-      saveAs(blob, `Courtside_Liberia_Passes_${new Date().toISOString().slice(0, 10)}.zip`);
+      saveAs(blob, `CourtiQ_Passes_${new Date().toISOString().slice(0, 10)}.zip`);
     } catch (err) {
       console.error('ZIP export failed', err);
       alert('Could not export the batch as a ZIP. Please try again, or download passes individually.');
@@ -290,7 +290,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
       return `
         <div style="page-break-inside: avoid; width: 620px; border: 2px solid #f59e0b; border-radius: 20px; padding: 18px; margin: 12px; background: #0f172a; color: white; display: flex; justify-content: space-between; align-items: center; gap: 16px;">
           <div style="text-align:left;">
-            <div style="font-size: 10px; color: #f59e0b; font-weight: 800; text-transform: uppercase;">Courtside Liberia Official Ticket</div>
+            <div style="font-size: 10px; color: #f59e0b; font-weight: 800; text-transform: uppercase;">CourtiQ Official Ticket</div>
             <div style="font-size: 20px; font-weight: 900; margin-top: 4px; color:#fbbf24;">${t.eventName}</div>
             ${t.eventDate ? `<div style="font-size: 12px; color: #cbd5e1; margin-top: 4px;">${t.eventDate} ${t.eventTime || ''}</div>` : ''}
             ${t.holderName ? `<div style="font-size: 12px; color: #f59e0b; font-weight:700; margin-top: 6px;">Pass Holder: ${t.holderName}</div>` : ''}
@@ -305,7 +305,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Generated Passes — Courtside Liberia</title>
+          <title>Generated Passes — CourtiQ</title>
           <link rel="preconnect" href="https://fonts.googleapis.com">
           <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
           <style>
@@ -314,7 +314,7 @@ export const PassGeneratorModal: React.FC<PassGeneratorModalProps> = ({
           </style>
         </head>
         <body>
-          <h2 style="color:#fff;margin-bottom:16px;">Courtside Liberia — Batch (${generatedSuccess.length} Passes)</h2>
+          <h2 style="color:#fff;margin-bottom:16px;">CourtiQ — Batch (${generatedSuccess.length} Passes)</h2>
           <div style="display:flex;flex-wrap:wrap;justify-content:center;">${cardsHtml}</div>
           <script>setTimeout(() => { window.print(); }, 700);</script>
         </body>

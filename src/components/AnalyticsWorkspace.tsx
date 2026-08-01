@@ -33,7 +33,7 @@ export const AnalyticsWorkspace: React.FC<AnalyticsWorkspaceProps> = ({ tickets 
         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
           <p className="text-[10px] text-slate-400 uppercase font-mono">Floor Seating Yield</p>
           <p className="text-xl font-bold font-mono text-blue-400">{floorPasses.length} Issued</p>
-          <p className="text-[10px] text-slate-400">Courtside perimeter</p>
+          <p className="text-[10px] text-slate-400">CourtiQ perimeter</p>
         </div>
         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
           <p className="text-[10px] text-slate-400 uppercase font-mono">General Access Volume</p>

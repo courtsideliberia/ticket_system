@@ -82,9 +82,9 @@ export const TICKET_TEMPLATES: Record<string, TicketTemplateDefinition> = {
   },
   royal_courtside: {
     id: 'royal_courtside',
-    name: 'Royal Courtside',
+    name: 'Royal CourtiQ',
     tagline: 'Official Credential',
-    badgeText: 'COURTSIDE',
+    badgeText: 'COURTIQ',
     themeMode: 'dark',
     defaults: defaults({
       primaryColor: '#1e3a8a', secondaryColor: '#7f1d1d', accentColor: '#3b82f6',
@@ -94,7 +94,7 @@ export const TICKET_TEMPLATES: Record<string, TicketTemplateDefinition> = {
     }),
     artLayers: [CourtLinesSVG, StadiumArcSVG],
     previewGradient: 'bg-gradient-to-r from-blue-700 via-slate-800 to-red-700',
-    description: 'The signature Courtside Liberia blue-and-red official credential.'
+    description: 'The signature CourtiQ blue-and-red official credential.'
   },
   emerald_press: {
     id: 'emerald_press',
@@ -382,9 +382,9 @@ export const TICKET_TEMPLATES: Record<string, TicketTemplateDefinition> = {
   },
   royal_courtside_art_bg: {
     id: 'royal_courtside_art_bg',
-    name: 'Royal Courtside Graphic',
+    name: 'Royal CourtiQ Graphic',
     tagline: 'Official Arena Graphic Edition',
-    badgeText: 'COURTSIDE PASS',
+    badgeText: 'COURTIQ PASS',
     themeMode: 'dark',
     isGraphicArt: true,
     backgroundImageUrl: '/royal_courtside_art.jpg',

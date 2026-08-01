@@ -30,7 +30,7 @@ export const ReportsWorkspace: React.FC<ReportsWorkspaceProps> = ({ tickets }) =
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Courtside_Passes_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `CourtiQ_Passes_Report_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

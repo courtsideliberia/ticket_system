@@ -1,0 +1,78 @@
+<svg viewBox="0 0 200 200" width="200" height="200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="courtiq-blue-arc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e40af" />
+      <stop offset="50%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="courtiq-red-arc" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#b91c1c" />
+      <stop offset="50%" stop-color="#dc2626" />
+      <stop offset="100%" stop-color="#ef4444" />
+    </linearGradient>
+  </defs>
+
+  <circle cx="100" cy="100" r="92" fill="#ffffff" />
+
+  <path
+    d="M 30,100 A 72,72 0 1,1 170,100"
+    fill="none"
+    stroke="url(#courtiq-blue-arc)"
+    stroke-width="16"
+    stroke-linecap="round"
+  />
+
+  <path
+    d="M 170,100 A 72,72 0 0,1 30,120"
+    fill="none"
+    stroke="url(#courtiq-red-arc)"
+    stroke-width="16"
+    stroke-linecap="round"
+  />
+
+  <circle cx="100" cy="100" r="64" fill="#ffffff" />
+
+  <path
+    d="M 52,60 C 52,50 148,50 148,60 V 102 C 148,110 125,124 100,124 C 75,124 52,110 52,102 Z"
+    fill="#ffffff"
+    stroke="#162a45"
+    stroke-width="6"
+    stroke-linejoin="round"
+  />
+  <rect x="64" y="66" width="72" height="42" rx="4" fill="#ffffff" stroke="#162a45" stroke-width="4" />
+
+  <g fill="#162a45">
+    <rect x="70" y="72" width="14" height="14" rx="2" />
+    <rect x="73" y="75" width="8" height="8" fill="#ffffff" />
+    <rect x="75" y="77" width="4" height="4" fill="#162a45" />
+
+    <rect x="116" y="72" width="14" height="14" rx="2" />
+    <rect x="119" y="75" width="8" height="8" fill="#ffffff" />
+    <rect x="121" y="77" width="4" height="4" fill="#162a45" />
+
+    <rect x="70" y="90" width="14" height="14" rx="2" />
+    <rect x="73" y="93" width="8" height="8" fill="#ffffff" />
+    <rect x="75" y="95" width="4" height="4" fill="#162a45" />
+
+    <rect x="88" y="72" width="4" height="4" />
+    <rect x="94" y="72" width="4" height="4" />
+    <rect x="108" y="72" width="4" height="4" />
+    <rect x="88" y="80" width="8" height="4" />
+    <rect x="100" y="78" width="12" height="4" />
+    <rect x="88" y="90" width="4" height="8" />
+    <rect x="96" y="88" width="6" height="6" />
+    <rect x="106" y="88" width="6" height="6" />
+    <rect x="116" y="90" width="14" height="4" />
+    <rect x="122" y="98" width="8" height="6" />
+  </g>
+
+  <rect x="68" y="106" width="64" height="6" rx="3" fill="#dc2626" />
+
+  <path
+    d="M 72,112 L 80,148 L 100,164 L 120,148 L 128,112 M 80,112 L 100,140 L 120,112 M 100,112 L 80,148 M 100,112 L 120,148"
+    stroke="#162a45"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

@@ -149,7 +149,7 @@ export const SecurityWatermarkSVG: React.FC<{
 }> = ({ color, uid, style = 'official_seal' }) => {
   if (style === 'none') return null;
   const label =
-    style === 'shield_logo' ? 'COURTSIDE • VERIFIED' :
+    style === 'shield_logo' ? 'COURTIQ • VERIFIED' :
     style === 'starburst_hologram' ? '★ AUTHENTIC ★' :
     'OFFICIAL • SECURE';
 

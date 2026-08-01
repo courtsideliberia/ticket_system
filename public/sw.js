@@ -1,4 +1,4 @@
-const CACHE_NAME = 'courtside-pwa-v2';
+const CACHE_NAME = 'courtiq-pwa-v3';
 const urlsToCache = [
   '/',
   '/index.html',

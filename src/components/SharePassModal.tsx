@@ -48,7 +48,7 @@ export const SharePassModal: React.FC<SharePassModalProps> = ({
 ⚡ *Pass Status:* ${ticket.status.toUpperCase()}
 📱 Present this barcode / code at SKD Complex Entry Gates for fast validation.
 ━━━━━━━━━━━━━━━━━━━━
-Verified by Courtside Liberia Platform`;
+Verified by CourtiQ Platform`;
 
   const handleDownloadPNG = async () => {
     if (!ticket) return;
@@ -90,9 +90,9 @@ Verified by Courtside Liberia Platform`;
   };
 
   const handleOpenMailClient = () => {
-    const subject = encodeURIComponent(`🎟️ Your Courtside Pass: ${ticket.eventName} (${ticket.ticketCode})`);
+    const subject = encodeURIComponent(`🎟️ Your CourtiQ Pass: ${ticket.eventName} (${ticket.ticketCode})`);
     const body = encodeURIComponent(
-      `Hello ${ticket.holderName},\n\nHere is your official digital entry pass for ${ticket.eventName}.\n\nTicket Code: ${ticket.ticketCode}\nCategory: ${ticket.category.toUpperCase()}\nDate: ${ticket.eventDate}\nVenue: ${ticket.venue}\nSeat: ${ticket.section || 'General'} / Row ${ticket.row || '-'} / Seat ${ticket.seatNumber || '-'}\n\nPlease present this ticket code at the entrance gates.\n\nThank you,\nCourtside Liberia`
+      `Hello ${ticket.holderName},\n\nHere is your official digital entry pass for ${ticket.eventName}.\n\nTicket Code: ${ticket.ticketCode}\nCategory: ${ticket.category.toUpperCase()}\nDate: ${ticket.eventDate}\nVenue: ${ticket.venue}\nSeat: ${ticket.section || 'General'} / Row ${ticket.row || '-'} / Seat ${ticket.seatNumber || '-'}\n\nPlease present this ticket code at the entrance gates.\n\nThank you,\nCourtiQ`
     );
     window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
   };

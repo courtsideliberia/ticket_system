@@ -234,7 +234,7 @@ export function getInitialCanvasElements(ticketParams: Partial<PassTicket>): Can
       y: 52,
       width: 35,
       height: 9,
-      text: 'VIP COURTSIDE PASS',
+      text: 'VIP COURTIQ PASS',
       fontSize: 13,
       fontWeight: '900',
       fontColor: '#f59e0b',
@@ -515,7 +515,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onExit }) => {
       currency: ticketParams.currency || 'USD',
       status: 'valid',
       issuedAt: new Date().toISOString(),
-      qrCodeData: 'https://courtside.app/verify/LBA-2026-STUDIO-88',
+      qrCodeData: 'https://courtiq.app/verify/LBA-2026-STUDIO-88',
       themeId: selectedThemeId,
       customization,
     };

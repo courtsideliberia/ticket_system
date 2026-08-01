@@ -290,7 +290,7 @@ export const EventsWorkspace: React.FC<EventsWorkspaceProps> = ({
                   </div>
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-2 text-slate-200">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Print Courtside Box physical passes</span>
+                    <span>Print CourtiQ Box physical passes</span>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-2 text-slate-200">
                     <Clock className="w-4 h-4 text-blue-400 shrink-0" />

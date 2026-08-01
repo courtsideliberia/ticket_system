@@ -194,7 +194,7 @@ export const GoogleSheetsSync: React.FC<GoogleSheetsSyncProps> = ({
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', encodeURI(csvContent));
-    downloadAnchor.setAttribute('download', `Courtside_Events_And_Stats_${Date.now()}.csv`);
+    downloadAnchor.setAttribute('download', `CourtiQ_Events_And_Stats_${Date.now()}.csv`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.removeChild(downloadAnchor);
@@ -217,7 +217,7 @@ export const GoogleSheetsSync: React.FC<GoogleSheetsSyncProps> = ({
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', encodeURI(csvContent));
-    downloadAnchor.setAttribute('download', `Courtside_Passes_List_${Date.now()}.csv`);
+    downloadAnchor.setAttribute('download', `CourtiQ_Passes_List_${Date.now()}.csv`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.removeChild(downloadAnchor);
@@ -261,7 +261,7 @@ export const GoogleSheetsSync: React.FC<GoogleSheetsSyncProps> = ({
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backupData, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `Courtside_Database_Backup_${Date.now()}.json`);
+    downloadAnchor.setAttribute('download', `CourtiQ_Database_Backup_${Date.now()}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.removeChild(downloadAnchor);

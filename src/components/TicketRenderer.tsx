@@ -197,7 +197,7 @@ export const TicketRenderer: React.FC<TicketRendererProps> = ({
         </div>
 
         <div className="bg-slate-900 text-slate-300 py-2 px-4 text-[10px] font-mono text-center border-t border-slate-800 flex justify-between items-center">
-          <span>COURTSIDE CREDENTIAL</span>
+          <span>COURTIQ CREDENTIAL</span>
           <span className="text-red-400 font-bold uppercase">
             {getCategoryLabel(ticket.category)} PASS
           </span>

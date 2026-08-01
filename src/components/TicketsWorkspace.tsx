@@ -156,7 +156,7 @@ export const TicketsWorkspace: React.FC<TicketsWorkspaceProps> = ({
                 Generate Pass / Ticket
               </h3>
               <p className="text-xs text-amber-100/80 mt-1 leading-relaxed">
-                Choose from <strong>5 premium canvas design themes</strong> (Gold Foil VIP, Purple Sports, Neon Esports, Sleek Black, Courtside Classic). Input bold event name, upload logo, date, time & price!
+                Choose from <strong>5 premium canvas design themes</strong> (Gold Foil VIP, Purple Sports, Neon Esports, Sleek Black, CourtiQ Classic). Input bold event name, upload logo, date, time & price!
               </p>
             </div>
           </div>
@@ -275,10 +275,10 @@ export const TicketsWorkspace: React.FC<TicketsWorkspaceProps> = ({
             className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-medium text-slate-200 focus:outline-none focus:border-blue-500/50"
           >
             <option value="all">All Pass Tiers</option>
-            <option value="courtside_vip">Courtside VIP</option>
+            <option value="courtside_vip">CourtiQ VIP</option>
             <option value="vip">VIP Access</option>
-            <option value="courtside_box">Courtside Box Suite</option>
-            <option value="courtside_floor">Courtside Floor</option>
+            <option value="courtside_box">CourtiQ Box Suite</option>
+            <option value="courtside_floor">CourtiQ Floor</option>
             <option value="general_access">General Admission</option>
             <option value="media">Press & Media</option>
             <option value="player_staff">Player / Staff</option>

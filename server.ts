@@ -31,8 +31,8 @@ function defaultSeedState(): AppState {
     users: [
       {
         id: 'usr-owner-001',
-        name: 'Courtside Owner / Super Admin',
-        email: 'courtsideliberia@gmail.com',
+        name: 'CourtiQ Owner / Super Admin',
+        email: 'courtiq.admin@gmail.com',
         phone: '+231 88 000 4455',
         role: 'super_admin',
         passcode: '004455',
@@ -61,7 +61,7 @@ function defaultSeedState(): AppState {
         attendanceCount: 0,
         status: 'upcoming',
         createdByUserId: 'usr-owner-001',
-        createdByUserName: 'Courtside Owner / Super Admin',
+        createdByUserName: 'CourtiQ Owner / Super Admin',
         bannerGradient: 'from-blue-900 via-indigo-900 to-slate-900'
       },
       {
@@ -76,7 +76,7 @@ function defaultSeedState(): AppState {
         attendanceCount: 0,
         status: 'upcoming',
         createdByUserId: 'usr-owner-001',
-        createdByUserName: 'Courtside Owner / Super Admin',
+        createdByUserName: 'CourtiQ Owner / Super Admin',
         bannerGradient: 'from-amber-900 via-orange-900 to-slate-900'
       }
     ],
@@ -86,7 +86,7 @@ function defaultSeedState(): AppState {
     scanners: [],
     scannerLogs: [],
     activities: [
-      { id: 'act-seed', user: 'System', action: 'initialized the database', target: 'Courtside Liberia', timestamp: now, type: 'system' }
+      { id: 'act-seed', user: 'System', action: 'initialized the database', target: 'CourtiQ System', timestamp: now, type: 'system' }
     ],
     notifications: [],
     customLogoUrl: undefined
